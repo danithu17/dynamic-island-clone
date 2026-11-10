@@ -12,7 +12,7 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error("[Quick Pill ErrorBoundary caught error]:", error, errorInfo);
+    console.error("[Aura Island ErrorBoundary caught error]:", error, errorInfo);
     try {
       if (window.electronAPI?.logRendererError) {
         window.electronAPI.logRendererError({

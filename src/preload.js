@@ -62,6 +62,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('system-resume', handler);
     return () => ipcRenderer.removeListener('system-resume', handler);
   },
+  onIslandWake: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('island-wake', handler);
+    return () => ipcRenderer.removeListener('island-wake', handler);
+  },
   audioMixer: {
     getDevices: () => ipcRenderer.invoke('audio-mixer:get-devices'),
     getSessions: (deviceId) => ipcRenderer.invoke('audio-mixer:get-sessions', deviceId),

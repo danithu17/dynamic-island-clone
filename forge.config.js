@@ -7,7 +7,7 @@ const { MakerZIP } = require('@electron-forge/maker-zip');
 module.exports = {
   packagerConfig: {
     asar: true,
-    executableName: 'quick-pill',
+    executableName: 'aura-island',
     icon: path.join(__dirname, 'src/assets/icons/icon'),
     extraResource: [
       path.join(__dirname, 'src/assets/icons/icon.ico'),
@@ -44,7 +44,7 @@ module.exports = {
           }
 
           const portableSuffix = ext === '.zip' ? '-Portable' : '';
-          const newName = `QuickPill-${os}-v${version}${portableSuffix}${ext}`;
+          const newName = `AuraIsland-${os}-v${version}${portableSuffix}${ext}`;
           const newPath = path.join(path.dirname(artifactPath), newName);
 
           fs.renameSync(artifactPath, newPath);
@@ -53,7 +53,7 @@ module.exports = {
 
           // If .exe installer, also ensure -Setup.exe alias exists for updater compatibility
           if (ext === '.exe' && !newName.includes('-Setup')) {
-            const setupName = `QuickPill-${os}-v${version}-Setup${ext}`;
+            const setupName = `AuraIsland-${os}-v${version}-Setup${ext}`;
             const setupPath = path.join(path.dirname(artifactPath), setupName);
             try {
               fs.copyFileSync(newPath, setupPath);
@@ -71,10 +71,9 @@ module.exports = {
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({
-      name: 'quick_pill',
-      authors: 'Abrar Nabil',
-      description: 'A Dynamic Island for Windows',
-      iconUrl: 'https://raw.githubusercontent.com/nabil24024004/Quick-Pill/main/src/assets/icons/icon.ico',
+      name: 'aura_island',
+      authors: 'Aura Island Contributors',
+      description: 'An island-style notch widget for Windows',
       setupIcon: path.join(__dirname, 'src/assets/icons/icon.ico')
     }),
     new MakerZIP({}, ['win32']),

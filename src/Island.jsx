@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Mic, SkipBackIcon, Play, Pause, SkipForwardIcon, Music, Headphones, Zap, Settings, Sun, Cloud, Trash2, ChevronRight, ChevronLeft, Check, X, CloudRain, CloudSnow, CloudLightning, CloudSun, Moon, Eye, EyeOff, GripVertical, List, Search, Star, Calendar as CalendarIcon, Bell, BellOff, AlarmClock, Timer, Activity, Clock, Volume2, VolumeX, Wind, Usb, Download, RefreshCw, Sparkles, AlertCircle, CheckCircle2, SlidersHorizontal, Palette, Compass, Layers, Quote, Copy, Shuffle, BatteryCharging, Battery, ArrowDown, ArrowUp, FolderOpen, RotateCcw, FileText, CheckCircle, Upload, Film, Package, Phone, PhoneCall, PhoneIncoming, Send, MessageSquare, ExternalLink, Undo, ChevronDown, ChevronUp, BellRing, Keyboard } from "lucide-react";
+import { Camera, Mic, SkipBackIcon, Play, Pause, SkipForwardIcon, Music, Headphones, Zap, Settings, Sun, Cloud, Trash2, ChevronRight, ChevronLeft, Check, X, CloudRain, CloudSnow, CloudLightning, CloudSun, Moon, Eye, EyeOff, GripVertical, List, Search, Star, Calendar as CalendarIcon, Bell, BellOff, AlarmClock, Timer, Activity, Clock, Volume2, VolumeX, Wind, Usb, Download, RefreshCw, Sparkles, AlertCircle, CheckCircle2, SlidersHorizontal, Palette, Compass, Layers, Quote, Copy, Shuffle, BatteryCharging, Battery, ArrowDown, ArrowUp, FolderOpen, RotateCcw, FileText, CheckCircle, Upload, Film, Package, Phone, PhoneCall, PhoneIncoming, Send, MessageSquare, ExternalLink, Undo, ChevronDown, ChevronUp, BellRing, Keyboard, Info } from "lucide-react";
 import "./App.css";
 import AppLauncher from "./components/AppLauncher";
 import QuickNotes from "./components/QuickNotes";
 import ErrorBoundary from "./components/ErrorBoundary";
+import AboutCredits from "./components/AboutCredits";
 
 // Helper format file sizes (Bytes -> KB -> MB)
 function formatBytes(bytes, decimals = 1) {
@@ -705,7 +706,7 @@ const DAILY_QUOTES = [
   {
     quote: "The only way to do great work is to love what you do.",
     author: "Steve Jobs",
-    title: "Co-founder of Apple",
+    title: "Tech Pioneer & Visionary",
     image: "https://upload.wikimedia.org/wikipedia/commons/d/dc/Steve_Jobs_Headshot_2010-CROP_%28cropped_2%29.jpg",
     initials: "SJ",
     gradient: "linear-gradient(135deg, #0070f3, #00c6ff)"
@@ -2654,15 +2655,15 @@ export default function Island() {
         : (mode === "quick" && isPlaying && !alert && !chargingAlert && !bluetoothAlert && !cameraAlert && !microphoneAlert && !volumeAlert && !keyLockAlert && !usbAlert && !notificationAlert)
           ? nowPlayingWidth
           : (mode === "quick" || alert || chargingAlert || bluetoothAlert || cameraAlert || microphoneAlert || volumeAlert || keyLockAlert || usbAlert || notificationAlert)
-            ? 260
+            ? 240
             : isPlaying
               ? nowPlayingWidth
-              : 170;
+              : 126;
   const height = isNotificationBanner
-    ? 46
+    ? 42
     : mode === "large"
       ? (currentTab === 14 ? 278 : (currentTab === 9 ? 220 : (currentTab === 15 ? 185 : (currentTab === 12 || currentTab === 13 ? 175 : 145))))
-      : 40;
+      : 30;
 
   useEffect(() => {
     if (window.electronAPI?.platform === 'win32') {
@@ -4137,7 +4138,7 @@ export default function Island() {
           } else {
             setMode("still");
           }
-        }, 150);
+        }, 220);
       }}
       onClick={(e) => {
         if (ctrlHeldRef.current || e?.ctrlKey || e?.metaKey) {
@@ -4171,8 +4172,8 @@ export default function Island() {
         bottom: sideStyles.bottom || 'auto',
         borderTopLeftRadius: 0,
         borderTopRightRadius: 0,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
+        borderBottomLeftRadius: 15,
+        borderBottomRightRadius: 15,
       }}
       animate={{
         width: `${width}px`,
@@ -4198,7 +4199,7 @@ export default function Island() {
               ? 26
               : theme === "win95"
                 ? 0
-                : 20,
+                : 15,
         borderBottomRightRadius:
           mode === "large" && theme === "win95"
             ? 0
@@ -4206,10 +4207,10 @@ export default function Island() {
               ? 26
               : theme === "win95"
                 ? 0
-                : 20,
+                : 15,
         boxShadow: isHovered
-          ? "0 16px 36px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.2)"
-          : "0 8px 24px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.18)",
+          ? "0 18px 40px rgba(0, 0, 0, 0.45), 0 4px 14px rgba(0, 0, 0, 0.25)"
+          : "0 4px 18px rgba(0, 0, 0, 0.35), 0 0 1px rgba(255, 255, 255, 0.08)",
       }}
       onAnimationStart={() => {
         setIsTransitioning(true);
@@ -4219,9 +4220,9 @@ export default function Island() {
       }}
       transition={{
         type: "spring",
-        stiffness: 380,
-        damping: 35,
-        mass: 0.6,
+        stiffness: 350,
+        damping: 28,
+        mass: 0.65,
         x: { duration: 0.15 }
       }}
       style={{
@@ -4832,35 +4833,35 @@ export default function Island() {
                 style={{
                   position: "absolute",
                   top: "50%",
-                  left: "18px",
+                  left: mode === "still" ? "12px" : "18px",
                   transform: "translateY(-50%)",
-                  fontSize: 16,
+                  fontSize: mode === "still" ? 11.5 : 16,
                   fontWeight: 600,
                   margin: 0,
                   color: keyLockAlert ? "#4cc9f0ff" : usbAlert ? (usbAlert.action === "connected" ? "#34c759ff" : "#ff9500ff") : chargingAlert ? "#6fff7bff" : alert ? "#ff3f3fff" : cameraAlert ? "#ffff00ff" : microphoneAlert ? "#ff9a00ff" : (isTimerRunning || timerSeconds > 0) ? "#ff9500" : textColor,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6,
+                  gap: mode === "still" ? 4 : 6,
                   lineHeight: 1
                 }}
               >
                 {keyLockAlert ? (
-                  <span style={{ fontSize: 18, fontWeight: 800, fontFamily: 'monospace' }}>{keyLockAlert.key === 'CapsLock' ? 'A' : '#'}</span>
+                  <span style={{ fontSize: mode === "still" ? 12 : 18, fontWeight: 800, fontFamily: 'monospace' }}>{keyLockAlert.key === 'CapsLock' ? 'A' : '#'}</span>
                 ) : usbAlert ? (
-                  <Usb size={20} color={usbAlert.action === "connected" ? "#34c759" : "#ff9500"} />
+                  <Usb size={mode === "still" ? 13 : 20} color={usbAlert.action === "connected" ? "#34c759" : "#ff9500"} />
                 ) : chargingAlert ? (
-                  <Zap size={20} color="#6fff7b" />
+                  <Zap size={mode === "still" ? 13 : 20} color="#6fff7b" />
                 ) : alert ? (
-                  <Zap size={20} color="#ff3f3f" />
+                  <Zap size={mode === "still" ? 13 : 20} color="#ff3f3f" />
                 ) : cameraAlert ? (
-                  <Camera size={20} color="#ffff00" />
+                  <Camera size={mode === "still" ? 13 : 20} color="#ffff00" />
                 ) : microphoneAlert ? (
-                  <Mic size={20} color="#ff9a00" />
+                  <Mic size={mode === "still" ? 13 : 20} color="#ff9a00" />
                 ) : volumeAlert ? (
-                  volumeLevel === 0 ? <VolumeX size={20} color="#ff4d4d" /> : <Volume2 size={20} color="#4cc9f0" />
-                ) : bluetoothAlert ? <Headphones size={20} /> : (isTimerRunning || timerSeconds > 0) ? (
-                  <TimerCircleProgress progress={timerTotalDuration > 0 ? (timerSeconds / timerTotalDuration) : 0} size={18} strokeWidth={2.5} />
+                  volumeLevel === 0 ? <VolumeX size={mode === "still" ? 13 : 20} color="#ff4d4d" /> : <Volume2 size={mode === "still" ? 13 : 20} color="#4cc9f0" />
+                ) : bluetoothAlert ? <Headphones size={mode === "still" ? 13 : 20} /> : (isTimerRunning || timerSeconds > 0) ? (
+                  <TimerCircleProgress progress={timerTotalDuration > 0 ? (timerSeconds / timerTotalDuration) : 0} size={mode === "still" ? 13 : 18} strokeWidth={2} />
                 ) : time}
               </h1>
               <h1
@@ -4868,12 +4869,12 @@ export default function Island() {
                 style={{
                   position: "absolute",
                   top: "50%",
-                  right: "18px",
+                  right: mode === "still" ? "12px" : "18px",
                   transform: "translateY(-50%)",
-                  fontSize: 14,
+                  fontSize: mode === "still" ? 11 : 14,
                   fontWeight: 600,
                   margin: 0,
-                  maxWidth: '175px',
+                  maxWidth: mode === "still" ? '60px' : '175px',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -4903,7 +4904,7 @@ export default function Island() {
                   <span>{formatTimerMMSS(timerSeconds)}</span>
                 ) : (typeof weather.temp === "number" && !isNaN(weather.temp)) ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <WeatherIcon status={weather.status} size={14} color={textColor} />
+                    <WeatherIcon status={weather.status} size={mode === "still" ? 11 : 14} color={textColor} />
                     <span>{weather.temp}º</span>
                   </div>
                 ) : (percent !== null ? `${percent}%` : '--')}
@@ -6611,7 +6612,7 @@ export default function Island() {
                       }}
                     >
                       <h3 style={{ margin: 0, fontSize: 16 }}>Nothing Playing</h3>
-                      <p style={{ margin: '5px 0 0 0', opacity: 0.7, fontSize: 13 }}>Play music on Spotify or Apple Music</p>
+                      <p style={{ margin: '5px 0 0 0', opacity: 0.7, fontSize: 13 }}>Play music on Spotify or your media player</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -7967,7 +7968,8 @@ export default function Island() {
                 { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
                 { id: 'features', label: 'Features', icon: Zap },
                 { id: 'weather', label: 'Weather', icon: CloudSun },
-                { id: 'updates', label: 'Updates', icon: RefreshCw, hasBadge: (updateStatus === 'available' || updateStatus === 'downloaded') }
+                { id: 'updates', label: 'Updates', icon: RefreshCw, hasBadge: (updateStatus === 'available' || updateStatus === 'downloaded') },
+                { id: 'about', label: 'About & Credits', icon: Info }
               ];
 
               const appleSelectStyle = {
@@ -8740,7 +8742,7 @@ export default function Island() {
                         <div className="settings-update-card" style={{ padding: '8px 10px', borderRadius: 12 }}>
                           <div className="settings-update-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 11.5, fontWeight: 600, color: textColor }}>Quick Pill v{appVersion}</span>
+                              <span style={{ fontSize: 11.5, fontWeight: 600, color: textColor }}>Aura Island v{appVersion}</span>
                               {updateStatus === 'checking' && (
                                 <span className="settings-update-badge checking">Checking...</span>
                               )}
@@ -8874,6 +8876,11 @@ export default function Island() {
                           </div>
                         </div>
                       </div>
+                    )}
+
+                    {/* CATEGORY: ABOUT & CREDITS */}
+                    {settingsTab === 'about' && (
+                      <AboutCredits textColor={textColor} appVersion={appVersion} />
                     )}
                   </div>
                 </div>

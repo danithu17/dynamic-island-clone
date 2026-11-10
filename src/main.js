@@ -19,6 +19,12 @@ app.commandLine.appendSwitch("disable-background-timer-throttling");
 app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
 
+// Enforce single-instance protection
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+
 const path = require("node:path");
 const fs = require("fs");
 const os = require("os");
@@ -170,9 +176,9 @@ function setAlwaysOnTopState(enable) {
 // --- Logging System ---
 function getLogFilePath() {
   try {
-    return path.join(app.getPath("userData"), "quick-pill.log");
+    return path.join(app.getPath("userData"), "aura-island.log");
   } catch (_) {
-    return path.join(process.cwd(), "quick-pill.log");
+    return path.join(process.cwd(), "aura-island.log");
   }
 }
 
@@ -974,7 +980,7 @@ ipcMain.handle("set-auto-launch", (event, enable) => {
 function cleanLegacyStartupEntries() {
   if (process.platform !== "win32") return;
   try {
-    const legacyKeys = ["electron.app.Ripple", "electron.app.Electron", "electron.app.Quick Pill", "Ripple"];
+    const legacyKeys = ["electron.app.Ripple", "electron.app.Electron", "electron.app.Quick Pill", "Ripple", "Quick Pill", "Quick-Pill"];
     for (const key of legacyKeys) {
       exec(`reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "${key}" /f`, () => {});
     }
@@ -1047,7 +1053,7 @@ class AppUpdater extends EventEmitter {
         url,
         {
           headers: {
-            "User-Agent": `QuickPill-Updater/${this.currentVersion} (${process.platform} ${process.arch})`,
+            "User-Agent": `AuraIsland-Updater/${this.currentVersion} (${process.platform} ${process.arch})`,
             Accept: "application/json, text/plain, */*",
           },
           timeout: timeoutMs,
@@ -1136,7 +1142,7 @@ class AppUpdater extends EventEmitter {
         this.updateInfo = {
           version: remoteVersion,
           currentVersion: this.currentVersion,
-          name: manifest.name || `Quick Pill v${remoteVersion}`,
+          name: manifest.name || `Aura Island v${remoteVersion}`,
           releaseDate: manifest.releaseDate || "",
           mandatory: !!manifest.mandatory,
           changelog: Array.isArray(manifest.changelog) ? manifest.changelog : [],
@@ -1189,7 +1195,7 @@ class AppUpdater extends EventEmitter {
 
     const tempDir = app.getPath("temp");
     const ext = ".exe";
-    const tempFileName = `quick-pill-update-v${this.updateInfo.version}${ext}`;
+    const tempFileName = `aura-island-update-v${this.updateInfo.version}${ext}`;
     const targetFilePath = path.join(tempDir, tempFileName);
 
     return new Promise((resolve, reject) => {
@@ -1220,7 +1226,7 @@ class AppUpdater extends EventEmitter {
           currentUrl,
           {
             headers: {
-              "User-Agent": `QuickPill-Updater/${this.currentVersion} (${process.platform} ${process.arch})`,
+              "User-Agent": `AuraIsland-Updater/${this.currentVersion} (${process.platform} ${process.arch})`,
             },
           },
           (res) => {
@@ -1568,10 +1574,9 @@ const createWindow = () => {
   mainWindow.setIgnoreMouseEvents(true, { forward: true });
 
   mainWindow.once("ready-to-show", () => {
-    if (mainWindow) {
-      mainWindow.show();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.showInactive();
       ensureAlwaysOnTop();
-      mainWindow.focus();
     }
   });
 
@@ -1659,13 +1664,13 @@ function updateTrayMenu() {
   if (!tray || tray.isDestroyed()) return;
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: "Show/Hide Quick Pill",
+      label: "Show/Hide Aura Island",
       click: () => {
         if (mainWindow) {
           if (mainWindow.isVisible()) {
             mainWindow.hide();
           } else {
-            mainWindow.show();
+            mainWindow.showInactive();
             ensureAlwaysOnTop();
           }
         }
@@ -1681,7 +1686,7 @@ function updateTrayMenu() {
     },
     { type: "separator" },
     {
-      label: "Quit",
+      label: "Quit Aura Island",
       click: () => {
         app.quit();
       },
@@ -1691,7 +1696,7 @@ function updateTrayMenu() {
 }
 
 app.whenReady().then(() => {
-  app.setAppUserModelId("com.neosparkx.quickpill");
+  app.setAppUserModelId("com.auraisland.app");
   cleanLegacyStartupEntries();
   createWindow();
   startKeyLockPolling();
@@ -1713,7 +1718,7 @@ app.whenReady().then(() => {
     }
     const trayIcon = icon.isEmpty() ? iconPath : icon.resize({ width: 16, height: 16 });
     tray = new Tray(trayIcon);
-    tray.setToolTip("Quick Pill");
+    tray.setToolTip("Aura Island");
     updateTrayMenu();
   } catch (e) {
     console.error("Failed to create tray:", e);
