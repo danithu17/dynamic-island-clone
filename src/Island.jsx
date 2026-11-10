@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, Music, Zap, Battery, ArrowLeft, Timer as TimerIcon, Play, Square } from "lucide-react";
+import { Settings, Music, Zap, Battery, ArrowLeft, Timer as TimerIcon, Play, Square, Folder } from "lucide-react";
 import "./App.css";
 import MediaControls from "./components/MediaControls";
 import QuickToggles from "./components/QuickToggles";
 import SettingsView from "./components/SettingsView";
 import SmartAlertView from "./components/SmartAlertView";
+import DragMouthView from "./components/DragMouthView";
+import ShelfView from "./components/ShelfView";
 import ErrorBoundary from "./components/ErrorBoundary";
+import MenuBar from "./components/menubar/MenuBar";
 import { alertQueue } from "./services/alertQueue";
+import { shelfStorage } from "./services/shelfStorage";
 
 export default function Island() {
-  const [mode, setMode] = useState("still"); // "still" | "expanded"
-  const [activeView, setActiveView] = useState("media"); // "media" | "settings"
+  const [mode, setMode] = useState("still"); // "still" | "expanded" | "drag-mouth"
+  const [activeView, setActiveView] = useState("media"); // "media" | "shelf" | "settings"
   const [isHovered, setIsHovered] = useState(false);
   const [activeAlert, setActiveAlert] = useState(null);
   const [mediaTrack, setMediaTrack] = useState(null);
@@ -19,6 +23,11 @@ export default function Island() {
   const [alwaysOnTop, setAlwaysOnTop] = useState(true);
   const [batteryInfo, setBatteryInfo] = useState({ percent: 100, charging: false });
   const [currentTime, setCurrentTime] = useState("");
+  const [shelfCount, setShelfCount] = useState(0);
+
+  // Menu Bar / Reserved Strip State
+  const [stripHeight, setStripHeight] = useState(34);
+  const [islandMode, setIslandMode] = useState("reserved");
 
   // Timer state
   const [timerRunning, setTimerRunning] = useState(false);
@@ -26,8 +35,16 @@ export default function Island() {
   const [timerTotalDuration, setTimerTotalDuration] = useState(0);
 
   const mouseLeaveTimer = useRef(null);
+  const dragLeaveTimer = useRef(null);
   const isHoveredRef = useRef(false);
   const prevBatteryRef = useRef({ percent: 100, charging: false });
+
+  // Subscribe to shelf items count
+  useEffect(() => {
+    return shelfStorage.subscribe((items) => {
+      setShelfCount(items.length);
+    });
+  }, []);
 
   // Subscribe to central Smart Alerts
   useEffect(() => {
@@ -292,6 +309,31 @@ export default function Island() {
     return () => cleanup?.();
   }, []);
 
+  // Fetch MenuBar / AppBar config
+  useEffect(() => {
+    if (window.electronAPI?.getMenuBarConfig) {
+      window.electronAPI.getMenuBarConfig().then((cfg) => {
+        if (cfg) {
+          if (typeof cfg.stripHeight === "number") setStripHeight(cfg.stripHeight);
+          if (cfg.islandPosition) setIslandMode(cfg.islandPosition);
+        }
+      });
+    }
+
+    const unsubMode = window.electronAPI?.onIslandModeChanged?.((mode) => {
+      if (mode) setIslandMode(mode);
+    });
+
+    const unsubCfg = window.electronAPI?.onMenuBarConfigChanged?.((cfg) => {
+      if (typeof cfg?.stripHeight === "number") setStripHeight(cfg.stripHeight);
+    });
+
+    return () => {
+      unsubMode?.();
+      unsubCfg?.();
+    };
+  }, []);
+
   // Single-instance wakeup listener
   useEffect(() => {
     if (!window.electronAPI?.onIslandWake) return;
@@ -334,8 +376,8 @@ export default function Island() {
   const isExpanded = mode === "expanded";
 
   // Dynamic dimensions based on state
-  let width = 126;
-  let height = 30;
+  let width = 140;
+  let height = stripHeight;
 
   if (isExpanded) {
     width = activeView === "settings" ? 560 : 520;
@@ -343,28 +385,41 @@ export default function Island() {
   } else if (activeAlert) {
     // Morph pill to fit compact live activity alert
     width = 270;
-    height = 34;
+    height = Math.max(stripHeight, 36);
   } else if (isPlaying) {
-    width = 140;
-    height = 30;
+    width = 150;
+    height = stripHeight;
   }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "flex-start",
-        pointerEvents: "none",
-        userSelect: "none",
-        zIndex: 999999,
-      }}
-    >
+    <>
+      <MenuBar
+        stripHeight={stripHeight}
+        islandMode={islandMode}
+        notchWidth={width}
+        isNotchHovered={isHovered}
+        isNotchExpanded={isExpanded}
+        onOpenSettings={() => {
+          setActiveView("settings");
+          setMode("expanded");
+          window.electronAPI?.setIgnoreMouseEvents?.(false);
+        }}
+      />
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "flex-start",
+          pointerEvents: "none",
+          userSelect: "none",
+          zIndex: 999995,
+        }}
+      >
       <motion.div
         id="Island"
         onMouseEnter={handleMouseEnter}
@@ -636,5 +691,6 @@ export default function Island() {
         )}
       </motion.div>
     </div>
+    </>
   );
 }

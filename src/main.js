@@ -40,6 +40,7 @@ const https = require("https");
 const http = require("http");
 const { exec, execFile } = require("child_process");
 const { EventEmitter } = require("events");
+const { appBarService } = require("./services/appBarService");
 
 function initMediaHelper(logToFile = console.log) {
   let userDataDir;
@@ -433,6 +434,49 @@ function saveAlwaysOnTopPreference(val) {
   } catch (_) {}
 }
 
+const DEFAULT_MENUBAR_SETTINGS = {
+  islandPosition: "reserved",
+  stripHeight: 34,
+  stripMargin: 0,
+  fullscreenBehavior: "hide",
+  menuBarBackground: "acrylic",
+  clockFormat: "standard",
+};
+
+function loadMenuBarSettings() {
+  try {
+    const p = getSettingsPath();
+    if (fs.existsSync(p)) {
+      const data = JSON.parse(fs.readFileSync(p, "utf8"));
+      return {
+        ...DEFAULT_MENUBAR_SETTINGS,
+        ...(data.menuBar || {}),
+        islandPosition: data.islandPosition || data.menuBar?.islandPosition || DEFAULT_MENUBAR_SETTINGS.islandPosition,
+        stripHeight: typeof data.stripHeight === "number" ? data.stripHeight : (typeof data.menuBar?.stripHeight === "number" ? data.menuBar.stripHeight : DEFAULT_MENUBAR_SETTINGS.stripHeight),
+        stripMargin: typeof data.stripMargin === "number" ? data.stripMargin : (typeof data.menuBar?.stripMargin === "number" ? data.menuBar.stripMargin : DEFAULT_MENUBAR_SETTINGS.stripMargin),
+        fullscreenBehavior: data.fullscreenBehavior || data.menuBar?.fullscreenBehavior || DEFAULT_MENUBAR_SETTINGS.fullscreenBehavior,
+      };
+    }
+  } catch (_) {}
+  return { ...DEFAULT_MENUBAR_SETTINGS };
+}
+
+function saveMenuBarSettings(partial) {
+  try {
+    const p = getSettingsPath();
+    let data = {};
+    if (fs.existsSync(p)) {
+      try { data = JSON.parse(fs.readFileSync(p, "utf8")); } catch (_) {}
+    }
+    data.menuBar = { ...(data.menuBar || {}), ...partial };
+    if (partial.islandPosition) data.islandPosition = partial.islandPosition;
+    if (typeof partial.stripHeight === "number") data.stripHeight = partial.stripHeight;
+    if (typeof partial.stripMargin === "number") data.stripMargin = partial.stripMargin;
+    if (partial.fullscreenBehavior) data.fullscreenBehavior = partial.fullscreenBehavior;
+    fs.writeFileSync(p, JSON.stringify(data, null, 2), "utf8");
+  } catch (_) {}
+}
+
 alwaysOnTopEnabled = loadAlwaysOnTopPreference();
 
 function ensureAlwaysOnTop() {
@@ -535,6 +579,7 @@ ipcMain.handle("set-display", (event, displayId) => {
     mainWindow.setBounds({ x, y, width, height });
     mainWindow.showInactive();
     ensureAlwaysOnTop();
+    appBarService.debouncedUpdatePos();
   }
 });
 
@@ -577,6 +622,12 @@ ipcMain.handle("show-item-in-folder", (event, filePath) => {
 ipcMain.handle("open-folder", (event, folderPath) => {
   const p = folderPath || app.getPath("downloads");
   shell.openPath(p);
+});
+
+ipcMain.handle("open-path", (event, targetPath) => {
+  if (targetPath && typeof targetPath === "string") {
+    shell.openPath(targetPath);
+  }
 });
 
 ipcMain.handle("take-screenshot", () => {
@@ -685,6 +736,62 @@ ipcMain.handle("log-renderer-error", (event, errorData) => {
   logToFile(`[RENDERER ERROR] ${JSON.stringify(errorData)}`);
 });
 
+// --- Menu Bar & AppBar IPC Handlers ---
+ipcMain.handle("menubar:get-config", () => {
+  return {
+    ...loadMenuBarSettings(),
+    isRegistered: appBarService.isRegistered,
+    currentMode: appBarService.mode,
+    activeApp: appBarService.getActiveApp(),
+  };
+});
+
+ipcMain.handle("menubar:set-mode", (event, mode) => {
+  if (["reserved", "overlay", "autohide"].includes(mode)) {
+    appBarService.setMode(mode);
+    saveMenuBarSettings({ islandPosition: mode });
+    updateTrayMenu();
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle("menubar:set-strip-height", (event, height) => {
+  if (typeof height === "number" && height >= 24 && height <= 80) {
+    appBarService.setStripHeight(height);
+    saveMenuBarSettings({ stripHeight: height });
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle("menubar:set-strip-margin", (event, margin) => {
+  if (typeof margin === "number" && margin >= 0 && margin <= 40) {
+    appBarService.setStripMargin(margin);
+    saveMenuBarSettings({ stripMargin: margin });
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle("menubar:set-fullscreen-behavior", (event, behavior) => {
+  if (["hide", "collapse"].includes(behavior)) {
+    appBarService.fullscreenBehavior = behavior;
+    saveMenuBarSettings({ fullscreenBehavior: behavior });
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle("menubar:release-reserved-space", () => {
+  appBarService.removeAppBar();
+  return true;
+});
+
+ipcMain.handle("menubar:get-active-app", () => {
+  return appBarService.getActiveApp();
+});
+
 // --- Auto-Updater ---
 class SimpleUpdater extends EventEmitter {
   constructor() {
@@ -781,6 +888,8 @@ const createWindow = () => {
 
 function updateTrayMenu() {
   if (!tray || tray.isDestroyed()) return;
+  const currentMode = appBarService.mode || "reserved";
+
   const contextMenu = Menu.buildFromTemplate([
     {
       label: "Show/Hide Aura Island",
@@ -805,6 +914,48 @@ function updateTrayMenu() {
     },
     { type: "separator" },
     {
+      label: "Island Position",
+      submenu: [
+        {
+          label: "Reserved Strip (Top Bar)",
+          type: "radio",
+          checked: currentMode === "reserved",
+          click: () => {
+            appBarService.setMode("reserved");
+            saveMenuBarSettings({ islandPosition: "reserved" });
+            updateTrayMenu();
+          },
+        },
+        {
+          label: "Overlay Mode",
+          type: "radio",
+          checked: currentMode === "overlay",
+          click: () => {
+            appBarService.setMode("overlay");
+            saveMenuBarSettings({ islandPosition: "overlay" });
+            updateTrayMenu();
+          },
+        },
+        {
+          label: "Auto-hide Mode",
+          type: "radio",
+          checked: currentMode === "autohide",
+          click: () => {
+            appBarService.setMode("autohide");
+            saveMenuBarSettings({ islandPosition: "autohide" });
+            updateTrayMenu();
+          },
+        },
+      ],
+    },
+    {
+      label: "Release Reserved Space",
+      click: () => {
+        appBarService.removeAppBar();
+      },
+    },
+    { type: "separator" },
+    {
       label: "Quit Aura Island",
       click: () => {
         app.quit();
@@ -819,6 +970,10 @@ app.whenReady().then(() => {
   cleanLegacyStartupEntries();
   createWindow();
   setupDownloadsWatcher(mainWindow, logToFile);
+
+  // Initialize native Win32 AppBar service with koffi
+  const menuBarConfig = loadMenuBarSettings();
+  appBarService.init(mainWindow, menuBarConfig, logToFile);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -842,9 +997,18 @@ app.whenReady().then(() => {
   }
 
   // Monitor resolution or display addition
-  screen.on("display-metrics-changed", () => ensureAlwaysOnTop());
-  screen.on("display-added", () => ensureAlwaysOnTop());
-  screen.on("display-removed", () => ensureAlwaysOnTop());
+  screen.on("display-metrics-changed", () => {
+    ensureAlwaysOnTop();
+    appBarService.debouncedUpdatePos();
+  });
+  screen.on("display-added", () => {
+    ensureAlwaysOnTop();
+    appBarService.debouncedUpdatePos();
+  });
+  screen.on("display-removed", () => {
+    ensureAlwaysOnTop();
+    appBarService.debouncedUpdatePos();
+  });
 
   powerMonitor.on("resume", () => {
     if (mainWindow && !mainWindow.isDestroyed()) {

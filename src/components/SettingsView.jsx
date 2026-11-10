@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { SlidersHorizontal, Bell, Info } from "lucide-react";
+import { SlidersHorizontal, Bell, Info, Monitor } from "lucide-react";
 import AboutCredits from "./AboutCredits";
 import { alertQueue } from "../services/alertQueue";
 
@@ -16,6 +16,11 @@ export default function SettingsView({
   const [autoLaunch, setAutoLaunch] = useState(false);
   const [alertPrefs, setAlertPrefs] = useState(alertQueue.getPreferences());
 
+  // Menu Bar / AppBar Settings
+  const [islandPosition, setIslandPosition] = useState("reserved"); // "reserved" | "overlay" | "autohide"
+  const [stripMargin, setStripMargin] = useState(0);
+  const [fullscreenBehavior, setFullscreenBehavior] = useState("hide"); // "hide" | "collapse"
+
   useEffect(() => {
     if (window.electronAPI?.getDisplays) {
       window.electronAPI.getDisplays().then((ds) => {
@@ -27,7 +32,33 @@ export default function SettingsView({
 
     const savedAutoLaunch = localStorage.getItem("auto-launch") === "true";
     setAutoLaunch(savedAutoLaunch);
+
+    if (window.electronAPI?.getMenuBarConfig) {
+      window.electronAPI.getMenuBarConfig().then((cfg) => {
+        if (cfg) {
+          if (cfg.islandPosition) setIslandPosition(cfg.islandPosition);
+          if (typeof cfg.stripMargin === "number") setStripMargin(cfg.stripMargin);
+          if (cfg.fullscreenBehavior) setFullscreenBehavior(cfg.fullscreenBehavior);
+        }
+      });
+    }
   }, []);
+
+  const handleIslandPositionChange = (mode) => {
+    setIslandPosition(mode);
+    window.electronAPI?.setIslandMode?.(mode);
+  };
+
+  const handleStripMarginChange = (val) => {
+    const num = parseInt(val, 10) || 0;
+    setStripMargin(num);
+    window.electronAPI?.setStripMargin?.(num);
+  };
+
+  const handleFullscreenBehaviorChange = (behavior) => {
+    setFullscreenBehavior(behavior);
+    window.electronAPI?.setFullscreenBehavior?.(behavior);
+  };
 
   const handleDisplayChange = (id) => {
     setSelectedDisplay(id);
@@ -91,6 +122,27 @@ export default function SettingsView({
         >
           <SlidersHorizontal size={14} />
           General
+        </button>
+
+        <button
+          onClick={() => setActiveCategory("display")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: "none",
+            background: activeCategory === "display" ? "rgba(255, 255, 255, 0.14)" : "transparent",
+            color: activeCategory === "display" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+            fontSize: 11.5,
+            fontWeight: 600,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <Monitor size={14} />
+          Display
         </button>
 
         <button
@@ -198,6 +250,181 @@ export default function SettingsView({
             </div>
 
             {/* Display / Monitor selector */}
+            {displays.length > 1 && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "8px 12px",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  borderRadius: 10,
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>Monitor Selection</div>
+                  <div style={{ fontSize: 10, opacity: 0.6 }}>Choose which screen displays the island</div>
+                </div>
+                <select
+                  value={selectedDisplay}
+                  onChange={(e) => handleDisplayChange(e.target.value)}
+                  style={{
+                    background: "rgba(0, 0, 0, 0.6)",
+                    border: "1px solid rgba(255, 255, 255, 0.16)",
+                    borderRadius: 6,
+                    color: "#ffffff",
+                    fontSize: 11,
+                    padding: "3px 8px",
+                  }}
+                >
+                  <option value="">Primary Display</option>
+                  {displays.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeCategory === "display" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px" }}>Display & Island Position</span>
+
+            {/* Island Position Mode */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                padding: "10px 12px",
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: 10,
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Island Position</div>
+                <div style={{ fontSize: 10, opacity: 0.6 }}>How the top bar reserves space on your desktop</div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 11.5 }}>
+                  <input
+                    type="radio"
+                    name="islandPosition"
+                    value="reserved"
+                    checked={islandPosition === "reserved"}
+                    onChange={() => handleIslandPositionChange("reserved")}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Reserved strip (Default)</div>
+                    <div style={{ fontSize: 10, opacity: 0.65 }}>AppBar registered; other app windows maximize below the island and menu bar.</div>
+                  </div>
+                </label>
+
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 11.5 }}>
+                  <input
+                    type="radio"
+                    name="islandPosition"
+                    value="overlay"
+                    checked={islandPosition === "overlay"}
+                    onChange={() => handleIslandPositionChange("overlay")}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Overlay</div>
+                    <div style={{ fontSize: 10, opacity: 0.65 }}>Floating over apps, click-through everywhere except the pill and bar.</div>
+                  </div>
+                </label>
+
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 11.5 }}>
+                  <input
+                    type="radio"
+                    name="islandPosition"
+                    value="autohide"
+                    checked={islandPosition === "autohide"}
+                    onChange={() => handleIslandPositionChange("autohide")}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Auto-hide</div>
+                    <div style={{ fontSize: 10, opacity: 0.65 }}>No space reserved; bar hides into top edge and slides down when mouse touches the top edge.</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Top Strip Margin */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 12px",
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: 10,
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Top Strip Extra Margin</div>
+                <div style={{ fontSize: 10, opacity: 0.6 }}>Extra spacing below the top bar (in pixels)</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                  type="range"
+                  min="0"
+                  max="20"
+                  step="2"
+                  value={stripMargin}
+                  onChange={(e) => handleStripMarginChange(e.target.value)}
+                  style={{ width: 80, cursor: "pointer" }}
+                />
+                <span style={{ fontSize: 11, fontWeight: 600, minWidth: 28, textAlign: "right" }}>
+                  {stripMargin}px
+                </span>
+              </div>
+            </div>
+
+            {/* Fullscreen Behavior */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 12px",
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: 10,
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Fullscreen Behavior</div>
+                <div style={{ fontSize: 10, opacity: 0.6 }}>When another app is fullscreen (video, games, F11)</div>
+              </div>
+              <select
+                value={fullscreenBehavior}
+                onChange={(e) => handleFullscreenBehaviorChange(e.target.value)}
+                style={{
+                  background: "rgba(0, 0, 0, 0.6)",
+                  border: "1px solid rgba(255, 255, 255, 0.16)",
+                  borderRadius: 6,
+                  color: "#ffffff",
+                  fontSize: 11,
+                  padding: "3px 8px",
+                }}
+              >
+                <option value="hide">Hide Completely</option>
+                <option value="collapse">Collapse Minimal</option>
+              </select>
+            </div>
+
+            {/* Monitor Selection */}
             {displays.length > 1 && (
               <div
                 style={{

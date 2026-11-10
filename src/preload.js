@@ -43,6 +43,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   showItemInFolder: (filePath) => ipcRenderer.invoke('show-item-in-folder', filePath),
   openFolder: (folderPath) => ipcRenderer.invoke('open-folder', folderPath),
+  openPath: (targetPath) => ipcRenderer.invoke('open-path', targetPath),
   takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
   lockWorkstation: () => ipcRenderer.invoke('lock-workstation'),
   openWifiSettings: () => ipcRenderer.invoke('open-wifi-settings'),
@@ -58,5 +59,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('alert:volume-change', handler);
   },
   logRendererError: (errorData) => ipcRenderer.invoke('log-renderer-error', errorData),
+  // Menu Bar & AppBar APIs
+  getMenuBarConfig: () => ipcRenderer.invoke("menubar:get-config"),
+  setIslandMode: (mode) => ipcRenderer.invoke("menubar:set-mode", mode),
+  setStripHeight: (height) => ipcRenderer.invoke("menubar:set-strip-height", height),
+  setStripMargin: (margin) => ipcRenderer.invoke("menubar:set-strip-margin", margin),
+  setFullscreenBehavior: (behavior) => ipcRenderer.invoke("menubar:set-fullscreen-behavior", behavior),
+  releaseReservedSpace: () => ipcRenderer.invoke("menubar:release-reserved-space"),
+  getActiveApp: () => ipcRenderer.invoke("menubar:get-active-app"),
+  onActiveAppChanged: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on("menubar:active-app-changed", handler);
+    return () => ipcRenderer.removeListener("menubar:active-app-changed", handler);
+  },
+  onFullscreenChanged: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on("menubar:fullscreen-changed", handler);
+    return () => ipcRenderer.removeListener("menubar:fullscreen-changed", handler);
+  },
+  onIslandModeChanged: (callback) => {
+    const handler = (event, mode) => callback(mode);
+    ipcRenderer.on("menubar:mode-changed", handler);
+    return () => ipcRenderer.removeListener("menubar:mode-changed", handler);
+  },
+  onMenuBarConfigChanged: (callback) => {
+    const handler = (event, config) => callback(config);
+    ipcRenderer.on("menubar:config-changed", handler);
+    return () => ipcRenderer.removeListener("menubar:config-changed", handler);
+  },
   platform: 'win32'
 });

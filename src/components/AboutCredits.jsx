@@ -122,6 +122,15 @@ export default function AboutCredits({ textColor = "#ffffff", appVersion = "5.5.
           <strong>Abrar Nabil</strong> (<code>nabil24024004</code> / Piko Can Fly). We extend our sincere gratitude to the original author and contributors for providing the foundational MIT-licensed codebase.
         </p>
 
+        <div style={{ marginTop: 4, fontSize: 10.5, lineHeight: 1.45, opacity: 0.8 }}>
+          <strong>Native Bridges & Components:</strong>
+          <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+            <li><strong>koffi</strong> (MIT License, Damien Erambert) – Ultra-fast C FFI used for native Win32 AppBar registration & foreground window tracking.</li>
+            <li><strong>Lucide Icons</strong> (ISC License) – Clean, beautiful UI icons.</li>
+            <li><strong>Framer Motion</strong> (MIT License) – Fluid physics-based springs and morph animations.</li>
+          </ul>
+        </div>
+
         <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
           <button
             onClick={() => openUrl("https://github.com/nabil24024004/Quick-Pill-Dynamic-Island-for-Windows")}
