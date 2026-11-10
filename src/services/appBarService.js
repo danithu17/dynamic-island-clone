@@ -66,9 +66,12 @@ let GetMonitorInfoW = null;
 let OpenProcess = null;
 let CloseHandle = null;
 let QueryFullProcessImageNameW = null;
-let SetWinEventHook = null;
-let UnhookWinEvent = null;
-let WinEventProc = null;
+let SystemParametersInfoW = null;
+
+const SPI_GETWORKAREA = 0x0030;
+const SPI_SETWORKAREA = 0x002F;
+const SPIF_UPDATEINIFILE = 0x0001;
+const SPIF_SENDCHANGE = 0x0002;
 
 if (koffi && process.platform === "win32") {
   try {
@@ -107,14 +110,11 @@ if (koffi && process.platform === "win32") {
     GetWindowRect = user32.func("int __stdcall GetWindowRect(uintptr_t hWnd, _Out_ APPBAR_RECT *lpRect)");
     MonitorFromWindow = user32.func("uintptr_t __stdcall MonitorFromWindow(uintptr_t hwnd, uint32 dwFlags)");
     GetMonitorInfoW = user32.func("int __stdcall GetMonitorInfoW(uintptr_t hMonitor, _Inout_ APPBAR_MONITORINFO *lpmi)");
+    SystemParametersInfoW = user32.func("int __stdcall SystemParametersInfoW(uint32 uiAction, uint32 uiParam, _Inout_ APPBAR_RECT *pvParam, uint32 fWinIni)");
 
     OpenProcess = kernel32.func("uintptr_t __stdcall OpenProcess(uint32 dwDesiredAccess, int bInheritHandle, uint32 dwProcessId)");
     CloseHandle = kernel32.func("int __stdcall CloseHandle(uintptr_t hObject)");
     QueryFullProcessImageNameW = kernel32.func("int __stdcall QueryFullProcessImageNameW(uintptr_t hProcess, uint32 dwFlags, _Out_ uint16 *lpExeName, _Inout_ uint32 *lpdwSize)");
-
-    WinEventProc = koffi.proto("void __stdcall WinEventProc(uintptr_t hWinEventHook, uint32 event, uintptr_t hwnd, int32 idObject, int32 idChild, uint32 idEventThread, uint32 dwmsEventTime)");
-    SetWinEventHook = user32.func("uintptr_t __stdcall SetWinEventHook(uint32 eventMin, uint32 eventMax, uintptr_t hmodWinEventProc, WinEventProc *pfnWinEventProc, uint32 idProcess, uint32 idThread, uint32 dwFlags)");
-    UnhookWinEvent = user32.func("int __stdcall UnhookWinEvent(uintptr_t hWinEventHook)");
   } catch (err) {
     console.error("Error setting up Win32 bindings with koffi:", err);
   }
@@ -125,6 +125,8 @@ class AppBarService {
     this.mainWindow = null;
     this.hwnd = 0;
     this.isRegistered = false;
+    this.originalWorkArea = null;
+    this.isWorkAreaModified = false;
     this.mode = "reserved"; // "reserved" | "overlay" | "autohide"
     this.stripHeight = 34; // default height in px
     this.stripMargin = 0; // margin in px
@@ -270,24 +272,87 @@ class AppBarService {
     };
   }
 
-  registerAppBar() {
-    if (!SHAppBarMessage || !this.hwnd || this.isRegistered) return;
+  captureOriginalWorkArea() {
+    if (SystemParametersInfoW && !this.originalWorkArea) {
+      try {
+        const rc = { left: 0, top: 0, right: 0, bottom: 0 };
+        const ok = SystemParametersInfoW(SPI_GETWORKAREA, 0, rc, 0);
+        if (ok && rc.right > rc.left && rc.bottom > rc.top) {
+          this.originalWorkArea = { ...rc };
+          this.logger("Captured original Windows work area:", this.originalWorkArea);
+        }
+      } catch (e) {
+        this.logger("Error capturing work area:", e);
+      }
+    }
+  }
+
+  applyReservedWorkArea() {
+    this.captureOriginalWorkArea();
+    if (!SystemParametersInfoW || !this.originalWorkArea) return;
 
     try {
-      const abd = {
-        cbSize: koffi.sizeof(APPBARDATA),
-        hWnd: this.hwnd,
-        uCallbackMessage: WM_APPBAR_CALLBACK,
-        uEdge: ABE_TOP,
-        rc: { left: 0, top: 0, right: 0, bottom: 0 },
-        lParam: 0,
+      const height = this.getEffectiveStripHeight();
+      const bounds = this.getMonitorBounds();
+      const targetTop = bounds.top + height;
+
+      const newRc = {
+        left: this.originalWorkArea.left,
+        top: Math.max(this.originalWorkArea.top, targetTop),
+        right: this.originalWorkArea.right,
+        bottom: this.originalWorkArea.bottom,
       };
 
-      const res = SHAppBarMessage(ABM_NEW, abd);
-      this.isRegistered = true;
-      this.logger("AppBar registered (ABM_NEW), result:", res);
+      const ok = SystemParametersInfoW(
+        SPI_SETWORKAREA,
+        0,
+        newRc,
+        SPIF_SENDCHANGE | SPIF_UPDATEINIFILE
+      );
+      this.isWorkAreaModified = true;
+      this.logger(`Windows work area adjusted (top=${newRc.top}): applications start below bar, res=${ok}`);
+    } catch (e) {
+      this.logger("Failed to apply work area:", e);
+    }
+  }
 
-      // Now set position
+  restoreOriginalWorkArea() {
+    if (!SystemParametersInfoW || !this.originalWorkArea || !this.isWorkAreaModified) return;
+
+    try {
+      const ok = SystemParametersInfoW(
+        SPI_SETWORKAREA,
+        0,
+        this.originalWorkArea,
+        SPIF_SENDCHANGE | SPIF_UPDATEINIFILE
+      );
+      this.isWorkAreaModified = false;
+      this.logger(`Restored original Windows work area, res=${ok}`);
+    } catch (e) {
+      this.logger("Failed to restore original work area:", e);
+    }
+  }
+
+  registerAppBar() {
+    if (!this.hwnd) return;
+
+    try {
+      if (SHAppBarMessage && !this.isRegistered) {
+        const abd = {
+          cbSize: koffi.sizeof(APPBARDATA),
+          hWnd: this.hwnd,
+          uCallbackMessage: WM_APPBAR_CALLBACK,
+          uEdge: ABE_TOP,
+          rc: { left: 0, top: 0, right: 0, bottom: 0 },
+          lParam: 0,
+        };
+
+        const res = SHAppBarMessage(ABM_NEW, abd);
+        this.isRegistered = true;
+        this.logger("AppBar registered (ABM_NEW), result:", res);
+      }
+
+      // Now set position & constrain work area
       this.updateAppBarPos();
     } catch (e) {
       this.logger("Failed to register AppBar:", e);
@@ -295,36 +360,36 @@ class AppBarService {
   }
 
   updateAppBarPos() {
-    if (!SHAppBarMessage || !this.hwnd || !this.isRegistered) return;
+    if (!this.hwnd) return;
 
     try {
       const bounds = this.getMonitorBounds();
       const height = this.getEffectiveStripHeight();
 
-      const abd = {
-        cbSize: koffi.sizeof(APPBARDATA),
-        hWnd: this.hwnd,
-        uCallbackMessage: WM_APPBAR_CALLBACK,
-        uEdge: ABE_TOP,
-        rc: {
-          left: bounds.left,
-          top: bounds.top,
-          right: bounds.right,
-          bottom: bounds.top + height,
-        },
-        lParam: 0,
-      };
+      if (SHAppBarMessage && this.isRegistered) {
+        const abd = {
+          cbSize: koffi.sizeof(APPBARDATA),
+          hWnd: this.hwnd,
+          uCallbackMessage: WM_APPBAR_CALLBACK,
+          uEdge: ABE_TOP,
+          rc: {
+            left: bounds.left,
+            top: bounds.top,
+            right: bounds.right,
+            bottom: bounds.top + height,
+          },
+          lParam: 0,
+        };
 
-      // Query position first so Windows adjusts for other bars
-      SHAppBarMessage(ABM_QUERYPOS, abd);
+        SHAppBarMessage(ABM_QUERYPOS, abd);
+        abd.rc.top = bounds.top;
+        abd.rc.bottom = bounds.top + height;
+        const setRes = SHAppBarMessage(ABM_SETPOS, abd);
+        this.logger(`AppBar position updated (ABM_SETPOS) [${abd.rc.left}, ${abd.rc.top}, ${abd.rc.right}, ${abd.rc.bottom}], res:`, setRes);
+      }
 
-      // Enforce the requested height and top edge
-      abd.rc.top = bounds.top;
-      abd.rc.bottom = bounds.top + height;
-
-      // Set the reserved position (reserves the space for other apps)
-      const setRes = SHAppBarMessage(ABM_SETPOS, abd);
-      this.logger(`AppBar position updated (ABM_SETPOS) [${abd.rc.left}, ${abd.rc.top}, ${abd.rc.right}, ${abd.rc.bottom}], res:`, setRes);
+      // Constrain all Windows applications so they can only run below the bar
+      this.applyReservedWorkArea();
     } catch (e) {
       this.logger("Failed to update AppBar position:", e);
     }
@@ -334,28 +399,31 @@ class AppBarService {
     if (this.posUpdateTimeout) clearTimeout(this.posUpdateTimeout);
     this.posUpdateTimeout = setTimeout(() => {
       this.posUpdateTimeout = null;
-      if (this.isRegistered && this.mode === "reserved" && !this.isFullscreenActive) {
+      if (this.mode === "reserved" && !this.isFullscreenActive) {
         this.updateAppBarPos();
       }
     }, 100);
   }
 
   removeAppBar() {
-    if (!SHAppBarMessage || !this.hwnd || !this.isRegistered) return;
-
     try {
-      const abd = {
-        cbSize: koffi.sizeof(APPBARDATA),
-        hWnd: this.hwnd,
-        uCallbackMessage: 0,
-        uEdge: ABE_TOP,
-        rc: { left: 0, top: 0, right: 0, bottom: 0 },
-        lParam: 0,
-      };
+      if (SHAppBarMessage && this.hwnd && this.isRegistered) {
+        const abd = {
+          cbSize: koffi.sizeof(APPBARDATA),
+          hWnd: this.hwnd,
+          uCallbackMessage: 0,
+          uEdge: ABE_TOP,
+          rc: { left: 0, top: 0, right: 0, bottom: 0 },
+          lParam: 0,
+        };
 
-      const res = SHAppBarMessage(ABM_REMOVE, abd);
-      this.isRegistered = false;
-      this.logger("AppBar removed (ABM_REMOVE), result:", res);
+        const res = SHAppBarMessage(ABM_REMOVE, abd);
+        this.isRegistered = false;
+        this.logger("AppBar removed (ABM_REMOVE), result:", res);
+      }
+
+      // Restore Windows work area so applications regain full screen
+      this.restoreOriginalWorkArea();
     } catch (e) {
       this.logger("Failed to remove AppBar:", e);
     }
@@ -487,7 +555,7 @@ class AppBarService {
     }, 1000);
   }
 
-  // --- Foreground Application Watcher ---
+  // --- Foreground Application Watcher (Safe Polling, Zero Crashing Hooks) ---
   startForegroundWatcher() {
     if (!GetForegroundWindow) return;
 
@@ -504,24 +572,7 @@ class AppBarService {
       } catch (_) {}
     };
 
-    // 1. Try WinEvent hook for event-driven updates
-    if (SetWinEventHook && koffi) {
-      try {
-        this.winEventCallback = koffi.register((hHook, event, hwnd) => {
-          if (hwnd && hwnd !== this.hwnd) {
-            this.lastForegroundHwnd = hwnd;
-            this.resolveAppDetails(hwnd);
-          }
-        }, koffi.pointer(WinEventProc));
-
-        // EVENT_SYSTEM_FOREGROUND = 0x0003, WINEVENT_OUTOFCONTEXT = 0
-        this.winEventHook = SetWinEventHook(0x0003, 0x0003, 0, this.winEventCallback, 0, 0, 0);
-      } catch (e) {
-        this.logger("Failed to register WinEvent hook, falling back to polling:", e);
-      }
-    }
-
-    // 2. Lightweight 500ms fallback poll for bulletproof detection
+    // Safe 500ms non-invasive poll (zero hook dll injection or system freezes)
     this.foregroundPollInterval = setInterval(checkForeground, 500);
 
     // Initial check
@@ -529,22 +580,21 @@ class AppBarService {
   }
 
   async resolveAppDetails(hwnd) {
+    let hProc = 0;
     try {
       if (!GetWindowThreadProcessId || !OpenProcess || !QueryFullProcessImageNameW) return;
 
       const pidBuf = [0];
       GetWindowThreadProcessId(hwnd, pidBuf);
       const pid = pidBuf[0];
-      if (!pid) return;
+      if (!pid || pid === process.pid) return;
 
-      const hProc = OpenProcess(0x1000 /* PROCESS_QUERY_LIMITED_INFORMATION */, 0, pid);
+      hProc = OpenProcess(0x1000 /* PROCESS_QUERY_LIMITED_INFORMATION */, 0, pid);
       if (!hProc) return;
 
       const buf = new Uint16Array(1024);
       const sizeBuf = [1024];
       const ok = QueryFullProcessImageNameW(hProc, 0, buf, sizeBuf);
-      CloseHandle(hProc);
-
       if (!ok || sizeBuf[0] === 0) return;
 
       const exePath = String.fromCharCode(...buf.slice(0, sizeBuf[0]));
@@ -586,7 +636,14 @@ class AppBarService {
       this.appInfoCache.set(exePath, appData);
       this.activeApp = appData;
       this.emitActiveApp(appData);
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      if (hProc && CloseHandle) {
+        try {
+          CloseHandle(hProc);
+        } catch (_) {}
+      }
+    }
   }
 
   emitActiveApp(appData) {
@@ -624,20 +681,6 @@ class AppBarService {
   }
 
   destroy() {
-    // Unhook WinEvent
-    if (this.winEventHook && UnhookWinEvent) {
-      try {
-        UnhookWinEvent(this.winEventHook);
-      } catch (_) {}
-      this.winEventHook = 0;
-    }
-    if (this.winEventCallback && koffi) {
-      try {
-        koffi.unregister(this.winEventCallback);
-      } catch (_) {}
-      this.winEventCallback = null;
-    }
-
     // Clear intervals
     if (this.foregroundPollInterval) {
       clearInterval(this.foregroundPollInterval);
@@ -652,7 +695,7 @@ class AppBarService {
       this.posUpdateTimeout = null;
     }
 
-    // Always release the AppBar reservation
+    // Always release the AppBar reservation & restore Windows work area
     this.removeAppBar();
   }
 }

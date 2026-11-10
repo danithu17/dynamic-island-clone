@@ -99,7 +99,7 @@ export default function MenuBar({
     }
   };
 
-  if (isFullscreen && fullscreenBehavior === "hide") {
+  if (islandMode === "overlay" || (isFullscreen && fullscreenBehavior === "hide")) {
     return null;
   }
 
