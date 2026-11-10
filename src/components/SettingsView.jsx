@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { SlidersHorizontal, Monitor, Info, Check } from "lucide-react";
+import { SlidersHorizontal, Bell, Info } from "lucide-react";
 import AboutCredits from "./AboutCredits";
+import { alertQueue } from "../services/alertQueue";
 
 export default function SettingsView({
   textColor = "#ffffff",
@@ -13,6 +14,7 @@ export default function SettingsView({
   const [displays, setDisplays] = useState([]);
   const [selectedDisplay, setSelectedDisplay] = useState("");
   const [autoLaunch, setAutoLaunch] = useState(false);
+  const [alertPrefs, setAlertPrefs] = useState(alertQueue.getPreferences());
 
   useEffect(() => {
     if (window.electronAPI?.getDisplays) {
@@ -37,6 +39,12 @@ export default function SettingsView({
     setAutoLaunch(enable);
     localStorage.setItem("auto-launch", enable ? "true" : "false");
     window.electronAPI?.setAutoLaunch?.(enable);
+  };
+
+  const handleAlertPrefToggle = (key, val) => {
+    const updated = { ...alertPrefs, [key]: val };
+    setAlertPrefs(updated);
+    alertQueue.savePreferences(updated);
   };
 
   return (
@@ -83,6 +91,27 @@ export default function SettingsView({
         >
           <SlidersHorizontal size={14} />
           General
+        </button>
+
+        <button
+          onClick={() => setActiveCategory("alerts")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: "none",
+            background: activeCategory === "alerts" ? "rgba(255, 255, 255, 0.14)" : "transparent",
+            color: activeCategory === "alerts" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+            fontSize: 11.5,
+            fontWeight: 600,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <Bell size={14} />
+          Smart Alerts
         </button>
 
         <button
@@ -206,6 +235,89 @@ export default function SettingsView({
                 </select>
               </div>
             )}
+          </div>
+        )}
+
+        {activeCategory === "alerts" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px" }}>Smart Alerts Configuration</span>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: 10,
+                padding: "8px 12px",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              {[
+                { key: "battery", label: "Battery Alerts", desc: "Low battery (20%, 10%) & charging updates" },
+                { key: "download", label: "Downloads Alert", desc: "Completed downloads in Downloads folder" },
+                { key: "timer", label: "Timer & Stopwatch", desc: "Live countdown in pill & completion alert" },
+                { key: "network", label: "Wi-Fi & Bluetooth", desc: "Connection status & disconnect notifications" },
+                { key: "volume", label: "Volume & Brightness", desc: "Overlay indicator bar on adjustment" },
+              ].map((item) => (
+                <div
+                  key={item.key}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "4px 0",
+                    borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 11.5, fontWeight: 600 }}>{item.label}</div>
+                    <div style={{ fontSize: 9.5, opacity: 0.6 }}>{item.desc}</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={alertPrefs[item.key] !== false}
+                    onChange={(e) => handleAlertPrefToggle(item.key, e.target.checked)}
+                    style={{ cursor: "pointer", width: 15, height: 15 }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Duration selector */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 12px",
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: 10,
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 11.5, fontWeight: 600 }}>Alert Display Duration</div>
+                <div style={{ fontSize: 9.5, opacity: 0.6 }}>How long alerts stay before auto-shrinking</div>
+              </div>
+              <select
+                value={alertPrefs.durationSec || 4}
+                onChange={(e) => handleAlertPrefToggle("durationSec", parseInt(e.target.value, 10))}
+                style={{
+                  background: "rgba(0, 0, 0, 0.6)",
+                  border: "1px solid rgba(255, 255, 255, 0.16)",
+                  borderRadius: 6,
+                  color: "#ffffff",
+                  fontSize: 11,
+                  padding: "3px 8px",
+                }}
+              >
+                <option value={3}>3 seconds</option>
+                <option value={4}>4 seconds</option>
+                <option value={5}>5 seconds</option>
+                <option value={6}>6 seconds</option>
+              </select>
+            </div>
           </div>
         )}
 

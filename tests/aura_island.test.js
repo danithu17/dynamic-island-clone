@@ -106,3 +106,44 @@ test("Aura Island: No Apple trademarks in user-facing texts", () => {
     }
   }
 });
+
+test("Aura Island Smart Alerts: alertQueue handles priority and deduplication", () => {
+  const { AlertQueue } = require("../src/services/alertQueue");
+  const queue = new AlertQueue();
+
+  let receivedAlert = null;
+  queue.subscribe((alert) => {
+    receivedAlert = alert;
+  });
+
+  // Show normal alert
+  queue.showAlert({ type: "network", title: "Wi-Fi Connected", priority: 2 });
+  assert.equal(receivedAlert?.title, "Wi-Fi Connected");
+
+  // Higher priority alert preempts
+  queue.showAlert({ type: "battery", title: "Low Battery", priority: 8 });
+  assert.equal(receivedAlert?.title, "Low Battery");
+
+  // Lower priority alert is queued, does not preempt
+  queue.showAlert({ type: "download", title: "File Downloaded", priority: 5 });
+  assert.equal(receivedAlert?.title, "Low Battery");
+
+  // Dismissing battery alert surfaces the queued download alert
+  queue.dismissCurrent();
+  assert.equal(receivedAlert?.title, "File Downloaded");
+
+  // Deduplication: updating download alert modifies active in-place
+  queue.showAlert({ type: "download", title: "Updated Download", priority: 5 });
+  assert.equal(receivedAlert?.title, "Updated Download");
+  assert.equal(queue.queue.length, 1); // Only the wi-fi alert remaining in queue
+});
+
+test("Aura Island Smart Alerts: SmartAlertView component exists", () => {
+  const smartAlertPath = path.join(__dirname, "../src/components/SmartAlertView.jsx");
+  assert.ok(fs.existsSync(smartAlertPath), "SmartAlertView.jsx must exist");
+  const content = fs.readFileSync(smartAlertPath, "utf8");
+
+  assert.ok(content.includes("getAlertIcon"), "Must include getAlertIcon helper");
+  assert.ok(content.includes("accentColor"), "Must support accentColor");
+  assert.ok(content.includes("alert.progress"), "Must support alert.progress bar");
+});

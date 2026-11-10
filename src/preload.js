@@ -41,6 +41,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('update-event', handler);
     return () => ipcRenderer.removeListener('update-event', handler);
   },
+  showItemInFolder: (filePath) => ipcRenderer.invoke('show-item-in-folder', filePath),
+  openFolder: (folderPath) => ipcRenderer.invoke('open-folder', folderPath),
+  onNewDownload: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('alert:new-download', handler);
+    return () => ipcRenderer.removeListener('alert:new-download', handler);
+  },
+  onVolumeChange: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('alert:volume-change', handler);
+    return () => ipcRenderer.removeListener('alert:volume-change', handler);
+  },
   logRendererError: (errorData) => ipcRenderer.invoke('log-renderer-error', errorData),
   platform: 'win32'
 });
