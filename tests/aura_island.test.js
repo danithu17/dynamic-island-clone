@@ -1,0 +1,108 @@
+"use strict";
+
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+test("Aura Island: package.json has proper branding, MIT license, and build configs", () => {
+  const pkgPath = path.join(__dirname, "../package.json");
+  assert.ok(fs.existsSync(pkgPath), "package.json must exist");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+
+  assert.equal(pkg.name, "aura-island");
+  assert.equal(pkg.productName, "Aura Island");
+  assert.equal(pkg.license, "MIT");
+  assert.equal(pkg.build.appId, "com.auraisland.app");
+  assert.equal(pkg.build.productName, "Aura Island");
+  assert.equal(pkg.build.win.artifactName, "AuraIsland-Windows-v${version}-Setup.${ext}");
+});
+
+test("Aura Island: About & Credits screen exists and properly credits original author", () => {
+  const aboutPath = path.join(__dirname, "../src/components/AboutCredits.jsx");
+  assert.ok(fs.existsSync(aboutPath), "AboutCredits.jsx must exist");
+  const content = fs.readFileSync(aboutPath, "utf8");
+
+  assert.ok(content.includes("Aura Island"), "Must contain Aura Island product branding");
+  assert.ok(content.includes("nabil24024004") || content.includes("Abrar Nabil"), "Must credit original author Abrar Nabil");
+  assert.ok(content.includes("Quick-Pill"), "Must reference original Quick-Pill project");
+  assert.ok(content.includes("MIT License"), "Must display MIT license notice");
+  assert.ok(content.includes("https://github.com/nabil24024004/Quick-Pill-Dynamic-Island-for-Windows"), "Must link to upstream repository");
+});
+
+test("Aura Island: MediaControls component exists with playback controls and scrubber", () => {
+  const mediaPath = path.join(__dirname, "../src/components/MediaControls.jsx");
+  assert.ok(fs.existsSync(mediaPath), "MediaControls.jsx must exist");
+  const content = fs.readFileSync(mediaPath, "utf8");
+
+  assert.ok(content.includes("SkipBack"), "Must include SkipBack icon/control");
+  assert.ok(content.includes("SkipForward"), "Must include SkipForward icon/control");
+  assert.ok(content.includes("onPlayPause"), "Must support onPlayPause handler");
+  assert.ok(content.includes("formatTime"), "Must format scrubber time");
+});
+
+test("Aura Island: SettingsView component exists with General and About navigation", () => {
+  const settingsPath = path.join(__dirname, "../src/components/SettingsView.jsx");
+  assert.ok(fs.existsSync(settingsPath), "SettingsView.jsx must exist");
+  const content = fs.readFileSync(settingsPath, "utf8");
+
+  assert.ok(content.includes("Always on Top"), "Must include Always on Top toggle");
+  assert.ok(content.includes("Start with Windows"), "Must include Start with Windows option");
+  assert.ok(content.includes("AboutCredits"), "Must render AboutCredits");
+});
+
+test("Aura Island: Island.jsx has compact notch idle size, spring transitions, and ErrorBoundary", () => {
+  const islandPath = path.join(__dirname, "../src/Island.jsx");
+  assert.ok(fs.existsSync(islandPath), "Island.jsx must exist");
+  const content = fs.readFileSync(islandPath, "utf8");
+
+  assert.ok(content.includes("ErrorBoundary"), "Must wrap view in ErrorBoundary");
+  assert.ok(content.includes("MediaControls"), "Must include MediaControls");
+  assert.ok(content.includes("SettingsView"), "Must include SettingsView");
+  assert.ok(content.includes("stiffness: 350"), "Must have spring physics stiffness: 350");
+  assert.ok(content.includes("damping: 28"), "Must have spring physics damping: 28");
+});
+
+test("Aura Island: main.js enforces single-instance protection, logging, and non-stealing launch", () => {
+  const mainPath = path.join(__dirname, "../src/main.js");
+  assert.ok(fs.existsSync(mainPath), "main.js must exist");
+  const content = fs.readFileSync(mainPath, "utf8");
+
+  assert.ok(content.includes("app.requestSingleInstanceLock()"), "Must enforce single-instance lock");
+  assert.ok(content.includes("aura-island.log"), "Must log to aura-island.log");
+  assert.ok(content.includes("mainWindow.showInactive()"), "Must use showInactive to avoid focus stealing");
+  assert.ok(content.includes("setIgnoreMouseEvents"), "Must manage mouse click-through");
+  assert.ok(content.includes("screen-saver"), "Must assert screen-saver topmost level");
+});
+
+test("Aura Island: mediaHelper service exists and provides GSMTC integration", () => {
+  const mediaHelperPath = path.join(__dirname, "../src/services/mediaHelper.js");
+  assert.ok(fs.existsSync(mediaHelperPath), "mediaHelper.js must exist");
+  const { initMediaHelper } = require("../src/services/mediaHelper");
+  assert.equal(typeof initMediaHelper, "function");
+
+  const helper = initMediaHelper();
+  assert.equal(typeof helper.getSystemMedia, "function");
+  assert.equal(typeof helper.controlSystemMedia, "function");
+  assert.equal(typeof helper.controlSystemVolume, "function");
+});
+
+test("Aura Island: No Apple trademarks in user-facing texts", () => {
+  const filesToCheck = [
+    path.join(__dirname, "../src/Island.jsx"),
+    path.join(__dirname, "../src/components/AboutCredits.jsx"),
+    path.join(__dirname, "../src/components/MediaControls.jsx"),
+    path.join(__dirname, "../src/components/SettingsView.jsx"),
+  ];
+
+  for (const file of filesToCheck) {
+    if (fs.existsSync(file)) {
+      const content = fs.readFileSync(file, "utf8");
+      // Check for user-facing string occurrences (excluding -apple-system CSS fallback)
+      const sanitized = content.replace(/-apple-system/g, "");
+      assert.ok(!sanitized.includes("Apple Music"), `${file} must not contain 'Apple Music'`);
+      assert.ok(!sanitized.includes("Apple Dynamic Island"), `${file} must not contain 'Apple Dynamic Island'`);
+      assert.ok(!sanitized.includes("Apple Inc"), `${file} must not contain 'Apple Inc'`);
+    }
+  }
+});
