@@ -561,8 +561,74 @@ ipcMain.handle("control-system-media", async (event, command, ...args) => {
 });
 
 ipcMain.handle("control-system-volume", async (event, action) => {
-  return mediaHelper.controlSystemVolume(action);
+  const res = await mediaHelper.controlSystemVolume(action);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("alert:volume-change", { action });
+  }
+  return res;
 });
+
+ipcMain.handle("show-item-in-folder", (event, filePath) => {
+  if (filePath && typeof filePath === "string") {
+    shell.showItemInFolder(filePath);
+  }
+});
+
+ipcMain.handle("open-folder", (event, folderPath) => {
+  const p = folderPath || app.getPath("downloads");
+  shell.openPath(p);
+});
+
+function setupDownloadsWatcher(win, logger) {
+  try {
+    const downloadsDir = app.getPath("downloads");
+    if (!fs.existsSync(downloadsDir)) return;
+
+    let debounceTimer = null;
+    const knownFiles = new Set();
+
+    try {
+      const existing = fs.readdirSync(downloadsDir);
+      for (const f of existing) knownFiles.add(f);
+    } catch (_) {}
+
+    fs.watch(downloadsDir, (eventType, filename) => {
+      if (!filename) return;
+
+      const lower = filename.toLowerCase();
+      if (
+        lower.endsWith(".crdownload") ||
+        lower.endsWith(".tmp") ||
+        lower.endsWith(".part") ||
+        lower.startsWith("~$") ||
+        lower.endsWith(".download")
+      ) {
+        return;
+      }
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        try {
+          const fullPath = path.join(downloadsDir, filename);
+          if (fs.existsSync(fullPath) && !knownFiles.has(filename)) {
+            knownFiles.add(filename);
+            const stats = fs.statSync(fullPath);
+            if (stats.isFile()) {
+              if (win && !win.isDestroyed()) {
+                win.webContents.send("alert:new-download", {
+                  fileName: filename,
+                  filePath: fullPath,
+                });
+              }
+            }
+          }
+        } catch (_) {}
+      }, 800);
+    });
+  } catch (err) {
+    logger?.("Failed to setup downloads watcher:", err);
+  }
+}
 
 ipcMain.handle("get-app-version", () => app.getVersion());
 
@@ -720,6 +786,7 @@ app.whenReady().then(() => {
   app.setAppUserModelId("com.auraisland.app");
   cleanLegacyStartupEntries();
   createWindow();
+  setupDownloadsWatcher(mainWindow, logToFile);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
