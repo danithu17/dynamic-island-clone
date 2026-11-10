@@ -2,7 +2,10 @@
 
 const path = require("node:path");
 const fs = require("fs");
-const { app, screen, nativeImage } = require("electron");
+const electron = require("electron");
+const app = electron.app;
+const screen = electron.screen;
+const nativeImage = electron.nativeImage;
 
 let koffi = null;
 try {

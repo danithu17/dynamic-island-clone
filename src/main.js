@@ -40,7 +40,22 @@ const https = require("https");
 const http = require("http");
 const { exec, execFile } = require("child_process");
 const { EventEmitter } = require("events");
-const { appBarService } = require("./services/appBarService");
+let appBarService;
+try {
+  appBarService = require("./services/appBarService").appBarService;
+} catch (_) {
+  try {
+    const devPath = path.join(process.cwd(), "src/services/appBarService.js");
+    if (fs.existsSync(devPath)) {
+      appBarService = require(devPath).appBarService;
+    } else {
+      const appPath = path.join(app.getAppPath(), ".vite/build/services/appBarService.js");
+      appBarService = require(appPath).appBarService;
+    }
+  } catch (err) {
+    console.error("Critical: Could not load appBarService:", err);
+  }
+}
 
 function initMediaHelper(logToFile = console.log) {
   let userDataDir;
