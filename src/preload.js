@@ -43,6 +43,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   showItemInFolder: (filePath) => ipcRenderer.invoke('show-item-in-folder', filePath),
   openFolder: (folderPath) => ipcRenderer.invoke('open-folder', folderPath),
+  takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
+  lockWorkstation: () => ipcRenderer.invoke('lock-workstation'),
+  openWifiSettings: () => ipcRenderer.invoke('open-wifi-settings'),
+  openBluetoothSettings: () => ipcRenderer.invoke('open-bluetooth-settings'),
   onNewDownload: (callback) => {
     const handler = (event, data) => callback(data);
     ipcRenderer.on('alert:new-download', handler);

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Settings, Music, Zap, Battery, ArrowLeft, Timer as TimerIcon, Play, Square } from "lucide-react";
 import "./App.css";
 import MediaControls from "./components/MediaControls";
+import QuickToggles from "./components/QuickToggles";
 import SettingsView from "./components/SettingsView";
 import SmartAlertView from "./components/SmartAlertView";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -338,7 +339,7 @@ export default function Island() {
 
   if (isExpanded) {
     width = activeView === "settings" ? 560 : 520;
-    height = activeView === "settings" ? 220 : 175;
+    height = activeView === "settings" ? 220 : 190;
   } else if (activeAlert) {
     // Morph pill to fit compact live activity alert
     width = 270;
@@ -557,6 +558,9 @@ export default function Island() {
                         onPrev={() => window.electronAPI?.controlSystemMedia?.("previous")}
                       />
                     </div>
+
+                    {/* Quick Toggles Row */}
+                    <QuickToggles />
 
                     {/* Quick Timer presets bar */}
                     <div

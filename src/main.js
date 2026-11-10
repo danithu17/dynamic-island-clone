@@ -579,6 +579,38 @@ ipcMain.handle("open-folder", (event, folderPath) => {
   shell.openPath(p);
 });
 
+ipcMain.handle("take-screenshot", () => {
+  if (process.platform === "win32") {
+    exec("explorer.exe ms-screenclip:", (err) => {
+      if (err) logToFile("Failed to trigger ms-screenclip:", err);
+    });
+  }
+});
+
+ipcMain.handle("lock-workstation", () => {
+  if (process.platform === "win32") {
+    exec("rundll32.exe user32.dll,LockWorkStation", (err) => {
+      if (err) logToFile("Failed to lock workstation:", err);
+    });
+  }
+});
+
+ipcMain.handle("open-wifi-settings", () => {
+  if (process.platform === "win32") {
+    exec("explorer.exe ms-availablenetworks:", (err) => {
+      if (err) logToFile("Failed to open wifi settings:", err);
+    });
+  }
+});
+
+ipcMain.handle("open-bluetooth-settings", () => {
+  if (process.platform === "win32") {
+    exec("explorer.exe ms-settings:bluetooth", (err) => {
+      if (err) logToFile("Failed to open bluetooth settings:", err);
+    });
+  }
+});
+
 function setupDownloadsWatcher(win, logger) {
   try {
     const downloadsDir = app.getPath("downloads");

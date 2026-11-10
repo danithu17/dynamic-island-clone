@@ -147,3 +147,34 @@ test("Aura Island Smart Alerts: SmartAlertView component exists", () => {
   assert.ok(content.includes("accentColor"), "Must support accentColor");
   assert.ok(content.includes("alert.progress"), "Must support alert.progress bar");
 });
+
+test("Aura Island Quick Toggles: QuickToggles component and system IPC handlers exist", () => {
+  const togglesPath = path.join(__dirname, "../src/components/QuickToggles.jsx");
+  assert.ok(fs.existsSync(togglesPath), "QuickToggles.jsx must exist");
+  const togglesContent = fs.readFileSync(togglesPath, "utf8");
+
+  assert.ok(togglesContent.includes("handleToggleWifi"), "Must handle Wi-Fi toggle");
+  assert.ok(togglesContent.includes("handleToggleBluetooth"), "Must handle Bluetooth toggle");
+  assert.ok(togglesContent.includes("handleToggleDnd"), "Must handle DND toggle");
+  assert.ok(togglesContent.includes("handleToggleMute"), "Must handle Mute toggle");
+  assert.ok(togglesContent.includes("handleScreenshot"), "Must handle Screenshot toggle");
+  assert.ok(togglesContent.includes("handleLock"), "Must handle Lock toggle");
+
+  const islandPath = path.join(__dirname, "../src/Island.jsx");
+  const islandContent = fs.readFileSync(islandPath, "utf8");
+  assert.ok(islandContent.includes("QuickToggles"), "Island.jsx must include QuickToggles");
+
+  const mainPath = path.join(__dirname, "../src/main.js");
+  const mainContent = fs.readFileSync(mainPath, "utf8");
+  assert.ok(mainContent.includes("take-screenshot"), "main.js must register take-screenshot IPC");
+  assert.ok(mainContent.includes("lock-workstation"), "main.js must register lock-workstation IPC");
+  assert.ok(mainContent.includes("open-wifi-settings"), "main.js must register open-wifi-settings IPC");
+  assert.ok(mainContent.includes("open-bluetooth-settings"), "main.js must register open-bluetooth-settings IPC");
+
+  const preloadPath = path.join(__dirname, "../src/preload.js");
+  const preloadContent = fs.readFileSync(preloadPath, "utf8");
+  assert.ok(preloadContent.includes("takeScreenshot"), "preload.js must expose takeScreenshot");
+  assert.ok(preloadContent.includes("lockWorkstation"), "preload.js must expose lockWorkstation");
+  assert.ok(preloadContent.includes("openWifiSettings"), "preload.js must expose openWifiSettings");
+  assert.ok(preloadContent.includes("openBluetoothSettings"), "preload.js must expose openBluetoothSettings");
+});
