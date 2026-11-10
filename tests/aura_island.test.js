@@ -178,3 +178,92 @@ test("Aura Island Quick Toggles: QuickToggles component and system IPC handlers 
   assert.ok(preloadContent.includes("openWifiSettings"), "preload.js must expose openWifiSettings");
   assert.ok(preloadContent.includes("openBluetoothSettings"), "preload.js must expose openBluetoothSettings");
 });
+
+test("Aura Island Phase 3: shelfStorage manages items, deduplication, and subscriber notifications", () => {
+  const { ShelfStorage } = require("../src/services/shelfStorage");
+  const shelf = new ShelfStorage();
+
+  let lastList = null;
+  const unsubscribe = shelf.subscribe((items) => {
+    lastList = items;
+  });
+
+  // Add file item
+  const item1 = shelf.addItem({
+    name: "report.pdf",
+    path: "C:\\Users\\USER\\Documents\\report.pdf",
+    size: 1048576,
+    type: "application/pdf",
+    target: "shelf",
+  });
+  assert.equal(item1.name, "report.pdf");
+  assert.equal(lastList.length, 1);
+  assert.equal(lastList[0].name, "report.pdf");
+
+  // Add second item (URL)
+  const item2 = shelf.addItem({
+    name: "GitHub Docs",
+    path: "https://docs.github.com",
+    size: 22,
+    type: "url",
+    isUrl: true,
+    target: "shelf",
+  });
+  assert.equal(lastList.length, 2);
+
+  // Deduplication by path: re-adding report.pdf moves it to front without duplicate
+  shelf.addItem({
+    name: "report.pdf",
+    path: "C:\\Users\\USER\\Documents\\report.pdf",
+    size: 2048576,
+    type: "application/pdf",
+    target: "shelf",
+  });
+  assert.equal(lastList.length, 2);
+  assert.equal(lastList[0].size, 2048576);
+
+  // Remove single item
+  shelf.removeItem(item2.id);
+  assert.equal(lastList.length, 1);
+  assert.equal(lastList[0].name, "report.pdf");
+
+  // Clear shelf
+  shelf.clearShelf();
+  assert.equal(lastList.length, 0);
+
+  unsubscribe();
+});
+
+test("Aura Island Phase 3: DragMouthView and ShelfView components exist with drag-drop and shelf panels", () => {
+  const mouthPath = path.join(__dirname, "../src/components/DragMouthView.jsx");
+  assert.ok(fs.existsSync(mouthPath), "DragMouthView.jsx must exist");
+  const mouthContent = fs.readFileSync(mouthPath, "utf8");
+
+  assert.ok(mouthContent.includes("Save to Shelf"), "Must include 'Save to Shelf' drop tile");
+  assert.ok(mouthContent.includes("Mail it (Gmail)"), "Must include 'Mail it (Gmail)' drop tile");
+  assert.ok(mouthContent.includes("To your phone"), "Must include 'To your phone' drop tile");
+  assert.ok(mouthContent.includes("handleDrop"), "Must handle drop event");
+
+  const shelfPath = path.join(__dirname, "../src/components/ShelfView.jsx");
+  assert.ok(fs.existsSync(shelfPath), "ShelfView.jsx must exist");
+  const shelfContent = fs.readFileSync(shelfPath, "utf8");
+
+  assert.ok(shelfContent.includes("handleOpenItem"), "Must support opening items");
+  assert.ok(shelfContent.includes("handleRevealItem"), "Must support revealing files in explorer");
+  assert.ok(shelfContent.includes("handleRemoveItem"), "Must support removing items");
+  assert.ok(shelfContent.includes("handleClearAll"), "Must support clearing shelf");
+
+  const islandPath = path.join(__dirname, "../src/Island.jsx");
+  const islandContent = fs.readFileSync(islandPath, "utf8");
+  assert.ok(islandContent.includes("DragMouthView"), "Island.jsx must import and use DragMouthView");
+  assert.ok(islandContent.includes("ShelfView"), "Island.jsx must import and use ShelfView");
+  assert.ok(islandContent.includes("drag-mouth"), "Island.jsx must support drag-mouth mode");
+
+  const mainPath = path.join(__dirname, "../src/main.js");
+  const mainContent = fs.readFileSync(mainPath, "utf8");
+  assert.ok(mainContent.includes("open-path"), "main.js must register open-path IPC handler");
+
+  const preloadPath = path.join(__dirname, "../src/preload.js");
+  const preloadContent = fs.readFileSync(preloadPath, "utf8");
+  assert.ok(preloadContent.includes("openPath"), "preload.js must expose openPath API");
+});

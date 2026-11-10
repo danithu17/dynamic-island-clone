@@ -508,19 +508,24 @@ export default function Island() {
         id="Island"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         animate={{
           width: `${width}px`,
           height: `${height}px`,
           backgroundColor: "#000000",
-          borderBottomLeftRadius: isExpanded ? 26 : 16,
-          borderBottomRightRadius: isExpanded ? 26 : 16,
+          borderBottomLeftRadius: isDragMouth ? 22 : isExpanded ? 26 : 16,
+          borderBottomRightRadius: isDragMouth ? 22 : isExpanded ? 26 : 16,
           borderTopLeftRadius: 0,
           borderTopRightRadius: 0,
-          boxShadow: isExpanded
-            ? "0 18px 40px rgba(0, 0, 0, 0.45), 0 4px 14px rgba(0, 0, 0, 0.25)"
-            : activeAlert
-              ? `0 12px 28px rgba(0, 0, 0, 0.4), 0 0 12px ${activeAlert.accentColor || "#0a84ff"}35`
-              : "0 4px 18px rgba(0, 0, 0, 0.35), 0 0 1px rgba(255, 255, 255, 0.08)",
+          boxShadow: isDragMouth
+            ? "0 16px 36px rgba(0, 0, 0, 0.55), 0 0 24px rgba(48, 209, 88, 0.35)"
+            : isExpanded
+              ? "0 18px 40px rgba(0, 0, 0, 0.45), 0 4px 14px rgba(0, 0, 0, 0.25)"
+              : activeAlert
+                ? `0 12px 28px rgba(0, 0, 0, 0.4), 0 0 12px ${activeAlert.accentColor || "#0a84ff"}35`
+                : "0 4px 18px rgba(0, 0, 0, 0.35), 0 0 1px rgba(255, 255, 255, 0.08)",
         }}
         transition={{
           type: "spring",
@@ -569,13 +574,18 @@ export default function Island() {
           <path d="M 0,0 V 12 H 1 A 12,12 0 0,1 13,0 Z" fill="#000000" />
         </svg>
 
+        {/* --- STATE 0: DRAG MOUTH (DROP ACTION TILES) --- */}
+        {isDragMouth && (
+          <DragMouthView onDropItem={handleDropItem} onCancel={() => setMode("still")} />
+        )}
+
         {/* --- STATE 1: SMART ALERT LIVE ACTIVITY (IDLE MORPH) --- */}
-        {!isExpanded && activeAlert && (
+        {!isExpanded && !isDragMouth && activeAlert && (
           <SmartAlertView alert={activeAlert} onClick={() => alertQueue.dismissCurrent()} />
         )}
 
         {/* --- STATE 2: IDLE NOTCH RESTING STATE --- */}
-        {!isExpanded && !activeAlert && (
+        {!isExpanded && !isDragMouth && !activeAlert && (
           <div
             style={{
               width: "100%",
@@ -617,7 +627,7 @@ export default function Island() {
         )}
 
         {/* --- STATE 3: EXPANDED DASHBOARD --- */}
-        {isExpanded && (
+        {isExpanded && !isDragMouth && (
           <div
             style={{
               width: "100%",
@@ -639,7 +649,7 @@ export default function Island() {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {activeView === "settings" ? (
+                {activeView !== "media" ? (
                   <button
                     onClick={() => setActiveView("media")}
                     style={{
@@ -663,25 +673,71 @@ export default function Island() {
                     AURA ISLAND
                   </span>
                 )}
+                {activeView === "shelf" && (
+                  <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.85, letterSpacing: "0.2px" }}>
+                    • SHELF
+                  </span>
+                )}
               </div>
 
-              {activeView !== "settings" && (
-                <button
-                  onClick={() => setActiveView("settings")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "rgba(255, 255, 255, 0.65)",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    padding: 4,
-                  }}
-                  title="Settings"
-                >
-                  <Settings size={14} />
-                </button>
-              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {activeView === "media" && (
+                  <button
+                    onClick={() => setActiveView("shelf")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      background: "rgba(255, 255, 255, 0.08)",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      borderRadius: 6,
+                      color: "#ffffff",
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      padding: "2px 8px",
+                      cursor: "pointer",
+                    }}
+                    title="Open Shelf Drawer"
+                  >
+                    <Folder size={11} color="#30d158" />
+                    <span>Shelf</span>
+                    {shelfCount > 0 && (
+                      <span
+                        style={{
+                          background: "#30d158",
+                          color: "#000000",
+                          borderRadius: 8,
+                          fontSize: 9,
+                          fontWeight: 700,
+                          padding: "0 4px",
+                          minWidth: 12,
+                          textAlign: "center",
+                        }}
+                      >
+                        {shelfCount}
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                {activeView !== "settings" && (
+                  <button
+                    onClick={() => setActiveView("settings")}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "rgba(255, 255, 255, 0.65)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      padding: 4,
+                    }}
+                    title="Settings"
+                  >
+                    <Settings size={14} />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* View Content */}
@@ -758,6 +814,8 @@ export default function Island() {
                       )}
                     </div>
                   </div>
+                ) : activeView === "shelf" ? (
+                  <ShelfView onClose={() => setActiveView("media")} />
                 ) : (
                   <SettingsView
                     appVersion={appVersion}

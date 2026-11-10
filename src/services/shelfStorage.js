@@ -3,7 +3,7 @@
 
 const STORAGE_KEY = "aura_shelf_items";
 
-class ShelfStorage {
+export class ShelfStorage {
   constructor() {
     this.listeners = new Set();
     this.items = this.load();
@@ -11,11 +11,13 @@ class ShelfStorage {
 
   load() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed)) {
-          return parsed;
+      if (typeof localStorage !== "undefined") {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) {
+            return parsed;
+          }
         }
       }
     } catch (err) {
@@ -26,7 +28,9 @@ class ShelfStorage {
 
   save() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.items));
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.items));
+      }
     } catch (err) {
       console.warn("Failed to persist shelf items:", err);
     }
@@ -91,3 +95,7 @@ class ShelfStorage {
 }
 
 export const shelfStorage = new ShelfStorage();
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { ShelfStorage, shelfStorage };
+}
