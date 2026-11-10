@@ -372,16 +372,100 @@ export default function Island() {
     }, 220);
   }, []);
 
+  // Drag and drop mouth handlers
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragLeaveTimer.current) {
+      clearTimeout(dragLeaveTimer.current);
+      dragLeaveTimer.current = null;
+    }
+    setMode("drag-mouth");
+    window.electronAPI?.setIgnoreMouseEvents?.(false);
+  }, []);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragLeaveTimer.current) {
+      clearTimeout(dragLeaveTimer.current);
+      dragLeaveTimer.current = null;
+    }
+    if (mode !== "drag-mouth") {
+      setMode("drag-mouth");
+      window.electronAPI?.setIgnoreMouseEvents?.(false);
+    }
+  }, [mode]);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragLeaveTimer.current) clearTimeout(dragLeaveTimer.current);
+    dragLeaveTimer.current = setTimeout(() => {
+      dragLeaveTimer.current = null;
+      if (mode === "drag-mouth") {
+        setMode("still");
+        window.electronAPI?.setIgnoreMouseEvents?.(true, true);
+      }
+    }, 280);
+  }, [mode]);
+
+  const handleDropItem = useCallback((item, targetTile) => {
+    if (dragLeaveTimer.current) clearTimeout(dragLeaveTimer.current);
+
+    if (targetTile === "shelf") {
+      shelfStorage.addItem(item);
+      alertQueue.showAlert({
+        type: "shelf",
+        icon: "download",
+        title: "Saved to Shelf",
+        subtitle: item.name,
+        accentColor: "#30d158",
+        priority: 6,
+        duration: 3500,
+      });
+    } else if (targetTile === "mail") {
+      shelfStorage.addItem({ ...item, target: "mail" });
+      alertQueue.showAlert({
+        type: "network",
+        icon: "mail",
+        title: "Queued for Gmail",
+        subtitle: item.name,
+        accentColor: "#0a84ff",
+        priority: 6,
+        duration: 3500,
+      });
+    } else if (targetTile === "phone") {
+      shelfStorage.addItem({ ...item, target: "phone" });
+      alertQueue.showAlert({
+        type: "network",
+        icon: "smartphone",
+        title: "Ready to Beam to Phone",
+        subtitle: item.name,
+        accentColor: "#bf5af2",
+        priority: 6,
+        duration: 3500,
+      });
+    }
+
+    setMode("still");
+    window.electronAPI?.setIgnoreMouseEvents?.(true, true);
+  }, []);
+
   const isPlaying = mediaTrack?.state === "playing";
   const isExpanded = mode === "expanded";
+  const isDragMouth = mode === "drag-mouth";
 
   // Dynamic dimensions based on state
   let width = 140;
   let height = stripHeight;
 
-  if (isExpanded) {
-    width = activeView === "settings" ? 560 : 520;
-    height = activeView === "settings" ? 220 : 190;
+  if (isDragMouth) {
+    width = 380;
+    height = 84;
+  } else if (isExpanded) {
+    width = activeView === "settings" ? 560 : activeView === "shelf" ? 500 : 520;
+    height = activeView === "settings" ? 220 : activeView === "shelf" ? 220 : 190;
   } else if (activeAlert) {
     // Morph pill to fit compact live activity alert
     width = 270;
