@@ -324,7 +324,7 @@ export default function MenuBar({
   };
 
   // Safe gap calculation (ensures items never overlap the notch)
-  const safeGapWidth = Math.max(notchWidth + 24, 160);
+  const safeGapWidth = Math.max(notchWidth + 64, 220);
 
   // Left side responsive overflow partitioning
   const allLeftItems = [
@@ -334,10 +334,17 @@ export default function MenuBar({
     { id: "clipboard", label: "Clipboard", icon: <Clipboard size={13} opacity={0.8} /> },
   ].filter((item) => menuConfig.items?.[item.id] !== false);
 
+  const hasAppMenus = Boolean(currentAppMenuData?.menus?.length > 0);
+
   let visibleLeftItems = allLeftItems;
   let overflowLeftItems = [];
 
-  if (windowWidth < 900) {
+  if (hasAppMenus) {
+    // When per-app menus are active, keep left bar clean like macOS:
+    // Extra utility items move into the overflow menu to prevent notch crowding/clipping
+    visibleLeftItems = [];
+    overflowLeftItems = allLeftItems;
+  } else if (windowWidth < 900) {
     visibleLeftItems = [];
     overflowLeftItems = allLeftItems;
   } else if (windowWidth < 1080) {

@@ -82,7 +82,13 @@ export default function AuraMenuDropdown({
 
       <div
         style={itemStyle}
-        onClick={() => handleItemClick(() => onOpenSettings?.())}
+        onClick={() => handleItemClick(() => {
+          if (window.electronAPI?.openSettingsWindow) {
+            window.electronAPI.openSettingsWindow("general");
+          } else {
+            onOpenSettings?.("general");
+          }
+        })}
         onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
@@ -90,7 +96,7 @@ export default function AuraMenuDropdown({
           <Settings size={14} opacity={0.8} />
           <span>Island Settings...</span>
         </div>
-        <span style={{ fontSize: 10.5, opacity: 0.5 }}>⌘,</span>
+        <span style={{ fontSize: 10.5, opacity: 0.5 }}>Ctrl+,</span>
       </div>
 
       <div style={separatorStyle} />

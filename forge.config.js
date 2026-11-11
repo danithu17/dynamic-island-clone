@@ -88,6 +88,10 @@ module.exports = {
             name: 'main_window',
             config: 'vite.renderer.config.mjs',
           },
+          {
+            name: 'settings_window',
+            config: 'vite.settings.config.mjs',
+          },
         ],
       },
     },

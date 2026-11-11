@@ -42,39 +42,55 @@ const https = require("https");
 const http = require("http");
 const { exec, execFile } = require("child_process");
 const { EventEmitter } = require("events");
-let appBarService;
-try {
-  appBarService = require("./services/appBarService").appBarService;
-} catch (_) {
-  try {
-    const devPath = path.join(process.cwd(), "src/services/appBarService.js");
-    if (fs.existsSync(devPath)) {
-      appBarService = require(devPath).appBarService;
-    } else {
-      const appPath = path.join(app.getAppPath(), ".vite/build/services/appBarService.js");
-      appBarService = require(appPath).appBarService;
-    }
-  } catch (err) {
-    console.error("Critical: Could not load appBarService:", err);
+
+function loadService(serviceName) {
+  const candidates = [
+    `./services/${serviceName}`,
+    path.join(__dirname, "services", `${serviceName}.js`),
+    path.join(__dirname, "../src/services", `${serviceName}.js`),
+    path.join(process.cwd(), "src/services", `${serviceName}.js`),
+    path.join(app && typeof app.getAppPath === "function" ? app.getAppPath() : process.cwd(), "src/services", `${serviceName}.js`),
+    path.join(app && typeof app.getAppPath === "function" ? app.getAppPath() : process.cwd(), ".vite/build/services", `${serviceName}.js`),
+  ];
+  for (const p of candidates) {
+    try {
+      if (p.startsWith("./") || fs.existsSync(p)) {
+        return require(p);
+      }
+    } catch (_) {}
   }
+  return {};
 }
 
-let appMenuService;
-try {
-  appMenuService = require("./services/appMenuService").appMenuService;
-} catch (_) {
-  try {
-    const devPath = path.join(process.cwd(), "src/services/appMenuService.js");
-    if (fs.existsSync(devPath)) {
-      appMenuService = require(devPath).appMenuService;
-    } else {
-      const appPath = path.join(app.getAppPath(), ".vite/build/services/appMenuService.js");
-      appMenuService = require(appPath).appMenuService;
-    }
-  } catch (err) {
-    console.error("Critical: Could not load appMenuService:", err);
-  }
-}
+const appBarModule = loadService("appBarService");
+const appBarService = appBarModule.appBarService || {
+  mode: "reserved",
+  stripHeight: 34,
+  isRegistered: false,
+  init: () => {},
+  setMode: () => {},
+  setStripHeight: () => {},
+  setStripMargin: () => {},
+  getActiveApp: () => ({ name: "Desktop", processName: "explorer.exe", isFullscreen: false }),
+  debouncedUpdatePos: () => {},
+  positionWindowToMonitorTop: () => {},
+  removeAppBar: () => {},
+};
+
+const appMenuModule = loadService("appMenuService");
+const appMenuService = appMenuModule.appMenuService || {
+  getMenusForApp: () => ({ layer: "generic", menus: [] }),
+  executeMenuItem: () => false,
+  getAllProfiles: () => [],
+  saveCustomProfile: () => false,
+  resetProfilesToDefault: () => false,
+};
+
+const settingsStoreModule = loadService("settingsStore");
+const settingsStore = settingsStoreModule.settingsStore || null;
+
+const settingsWindowManagerModule = loadService("settingsWindowManager");
+const openSettingsWindow = settingsWindowManagerModule.openSettingsWindow || (() => {});
 
 function initMediaHelper(logToFile = console.log) {
   let userDataDir;
@@ -493,6 +509,17 @@ const DEFAULT_MENUBAR_SETTINGS = {
 };
 
 function loadMenuBarSettings() {
+  if (settingsStore) {
+    const s = settingsStore.get("menuBar") || {};
+    return {
+      ...DEFAULT_MENUBAR_SETTINGS,
+      ...s,
+      items: {
+        ...DEFAULT_MENUBAR_SETTINGS.items,
+        ...(s.items || {}),
+      },
+    };
+  }
   try {
     const p = getSettingsPath();
     if (fs.existsSync(p)) {
@@ -517,6 +544,16 @@ function loadMenuBarSettings() {
 }
 
 function saveMenuBarSettings(partial) {
+  if (settingsStore) {
+    const curr = settingsStore.get("menuBar") || {};
+    const updated = {
+      ...curr,
+      ...partial,
+      items: partial.items ? { ...(curr.items || {}), ...partial.items } : curr.items,
+    };
+    settingsStore.set("menuBar", updated);
+    return;
+  }
   try {
     const p = getSettingsPath();
     let data = {};
@@ -936,6 +973,108 @@ ipcMain.handle("appmenu:set-enabled", async (event, enabled) => {
   return false;
 });
 
+// --- Settings Store & Standalone Settings Window IPC Handlers ---
+function handleSettingSideEffects(key, value) {
+  if (!key) return;
+  if (key === "menuBar.islandPosition" || key === "islandPosition") {
+    if (appBarService && ["reserved", "overlay", "autohide"].includes(value)) {
+      appBarService.setMode(value);
+      updateTrayMenu();
+    }
+  } else if (key === "menuBar.stripHeight" || key === "stripHeight") {
+    if (appBarService && typeof value === "number") {
+      appBarService.setStripHeight(value);
+    }
+  } else if (key === "menuBar.stripMargin" || key === "stripMargin") {
+    if (appBarService && typeof value === "number") {
+      appBarService.setStripMargin(value);
+    }
+  } else if (key === "general.startWithWindows") {
+    if (process.platform === "win32") {
+      try {
+        app.setLoginItemSettings({
+          openAtLogin: Boolean(value),
+          path: process.execPath,
+          args: ["--hidden"],
+        });
+      } catch (_) {}
+    }
+  } else if (key.startsWith("menuBar.items") && mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("menubar:config-changed", loadMenuBarSettings());
+  }
+}
+
+ipcMain.handle("settings:get-all", () => {
+  return settingsStore ? settingsStore.getAll() : {};
+});
+
+ipcMain.handle("settings:get", (event, key) => {
+  return settingsStore ? settingsStore.get(key) : undefined;
+});
+
+ipcMain.handle("settings:set", (event, key, value) => {
+  if (!settingsStore) return false;
+  const res = settingsStore.set(key, value);
+  handleSettingSideEffects(key, value);
+  return res;
+});
+
+ipcMain.handle("settings:set-multiple", (event, obj) => {
+  if (!settingsStore) return false;
+  const res = settingsStore.setMultiple(obj);
+  if (obj && typeof obj === "object") {
+    for (const [k, v] of Object.entries(obj)) {
+      handleSettingSideEffects(k, v);
+    }
+  }
+  return res;
+});
+
+ipcMain.handle("settings:reset-section", (event, section) => {
+  if (!settingsStore) return false;
+  const res = settingsStore.resetSection(section);
+  if (section === "menuBar" && appBarService) {
+    appBarService.setMode(settingsStore.get("menuBar.islandPosition") || "reserved");
+    appBarService.setStripHeight(settingsStore.get("menuBar.stripHeight") || 34);
+    appBarService.setStripMargin(settingsStore.get("menuBar.stripMargin") || 0);
+  }
+  return res;
+});
+
+ipcMain.handle("settings:reset-all", () => {
+  if (!settingsStore) return false;
+  return settingsStore.resetAll();
+});
+
+ipcMain.handle("settings:open-window", (event, section) => {
+  if (openSettingsWindow) {
+    openSettingsWindow(section);
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle("shelf:clear", () => {
+  try {
+    const { shelfStorage } = require("./services/shelfStorage");
+    shelfStorage.clear();
+    return true;
+  } catch (_) {
+    return false;
+  }
+});
+
+ipcMain.handle("notes:clear", () => {
+  try {
+    const userData = app.getPath("userData");
+    const notesPath = path.join(userData, "notes.json");
+    if (fs.existsSync(notesPath)) fs.unlinkSync(notesPath);
+    return true;
+  } catch (_) {
+    return false;
+  }
+});
+
 // --- Clipboard History Tracker ---
 const clipboardHistory = [];
 let lastClipboardText = "";
@@ -1181,6 +1320,14 @@ function updateTrayMenu() {
     },
     { type: "separator" },
     {
+      label: "Settings...",
+      accelerator: "Ctrl+,",
+      click: () => {
+        if (openSettingsWindow) openSettingsWindow();
+      },
+    },
+    { type: "separator" },
+    {
       label: "Quit Aura Island",
       click: () => {
         app.quit();
@@ -1210,6 +1357,16 @@ app.whenReady().then(() => {
     });
   } catch (e) {
     logToFile("Failed to register Alt+F global shortcut:", e);
+  }
+
+  // Register Settings hotkey (Ctrl+,)
+  try {
+    const hotkey = (settingsStore && settingsStore.get("shortcuts.openSettings")) || "Ctrl+,";
+    globalShortcut.register(hotkey, () => {
+      if (openSettingsWindow) openSettingsWindow();
+    });
+  } catch (e) {
+    logToFile("Failed to register Settings global shortcut:", e);
   }
 
   app.on("activate", () => {
