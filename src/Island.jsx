@@ -483,7 +483,16 @@ export default function Island() {
         notchWidth={width}
         isNotchHovered={isHovered}
         isNotchExpanded={isExpanded}
-        onOpenSettings={() => {
+        mediaTrack={mediaTrack}
+        timerRunning={timerRunning}
+        timerSecondsLeft={timerSecondsLeft}
+        onStartTimer={startTimer}
+        onOpenSettings={(view) => {
+          setActiveView(view === "media" ? "media" : "settings");
+          setMode("expanded");
+          window.electronAPI?.setIgnoreMouseEvents?.(false);
+        }}
+        onOpenAbout={() => {
           setActiveView("settings");
           setMode("expanded");
           window.electronAPI?.setIgnoreMouseEvents?.(false);

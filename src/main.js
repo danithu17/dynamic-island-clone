@@ -10,6 +10,7 @@ const {
   Menu,
   nativeImage,
   powerMonitor,
+  clipboard,
 } = require("electron");
 
 // Disable Chromium background timer throttling and occlusion tracking so timers run continuously
@@ -807,6 +808,81 @@ ipcMain.handle("menubar:get-active-app", () => {
   return appBarService.getActiveApp();
 });
 
+// --- Clipboard History Tracker ---
+const clipboardHistory = [];
+let lastClipboardText = "";
+
+function setupClipboardMonitor() {
+  setInterval(() => {
+    try {
+      const text = clipboard.readText();
+      if (text && text.trim() && text !== lastClipboardText) {
+        lastClipboardText = text;
+        const trimmed = text.trim();
+        const existingIdx = clipboardHistory.findIndex((item) => item.text === trimmed);
+        if (existingIdx !== -1) {
+          clipboardHistory.splice(existingIdx, 1);
+        }
+        clipboardHistory.unshift({
+          id: `clip_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          text: trimmed,
+          time: Date.now(),
+        });
+        if (clipboardHistory.length > 25) {
+          clipboardHistory.pop();
+        }
+      }
+    } catch (_) {}
+  }, 1200);
+}
+
+ipcMain.handle("clipboard:get-history", () => clipboardHistory);
+
+ipcMain.handle("clipboard:write-text", (event, text) => {
+  if (typeof text === "string") {
+    clipboard.writeText(text);
+    lastClipboardText = text;
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle("clipboard:clear", () => {
+  clipboardHistory.length = 0;
+  return true;
+});
+
+ipcMain.handle("system:launch-app", (event, appKey) => {
+  const commands = {
+    calc: "calc.exe",
+    terminal: "start wt || start cmd",
+    explorer: "explorer.exe",
+    taskmgr: "taskmgr.exe",
+    notepad: "notepad.exe",
+    settings: "start ms-settings:",
+    browser: "https://www.google.com",
+  };
+  const target = commands[appKey];
+  if (target) {
+    if (target.startsWith("http://") || target.startsWith("https://")) {
+      shell.openExternal(target);
+    } else {
+      exec(target, () => {});
+    }
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle("app:quit", () => {
+  app.quit();
+});
+
+ipcMain.handle("app:relaunch", () => {
+  app.relaunch();
+  app.exit(0);
+});
+
 // --- Auto-Updater ---
 class SimpleUpdater extends EventEmitter {
   constructor() {
@@ -989,6 +1065,7 @@ app.whenReady().then(() => {
   // Initialize native Win32 AppBar service with koffi
   const menuBarConfig = loadMenuBarSettings();
   appBarService.init(mainWindow, menuBarConfig, logToFile);
+  setupClipboardMonitor();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

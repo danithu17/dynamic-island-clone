@@ -58,6 +58,21 @@ test("MenuBar Components: exist and are free of Apple trademarks", () => {
     "ActiveAppName.jsx",
     "MenuBarBattery.jsx",
     "MenuBarClock.jsx",
+    "MenuItem.jsx",
+    "DropdownPanel.jsx",
+    "AuraMenuDropdown.jsx",
+    "ActiveAppDropdown.jsx",
+    "LauncherDropdown.jsx",
+    "ShelfDropdown.jsx",
+    "NotesDropdown.jsx",
+    "ClipboardDropdown.jsx",
+    "StatusChips.jsx",
+    "WifiDropdown.jsx",
+    "BluetoothDropdown.jsx",
+    "VolumeDropdown.jsx",
+    "ControlCenterDropdown.jsx",
+    "ClockDropdown.jsx",
+    "BatteryDropdown.jsx",
   ];
 
   for (const file of requiredFiles) {

@@ -87,5 +87,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on("menubar:config-changed", handler);
     return () => ipcRenderer.removeListener("menubar:config-changed", handler);
   },
+  // Clipboard & System Launcher APIs
+  getClipboardHistory: () => ipcRenderer.invoke("clipboard:get-history"),
+  writeClipboardText: (text) => ipcRenderer.invoke("clipboard:write-text", text),
+  clearClipboardHistory: () => ipcRenderer.invoke("clipboard:clear"),
+  launchApp: (appKey) => ipcRenderer.invoke("system:launch-app", appKey),
+  quitApp: () => ipcRenderer.invoke("app:quit"),
+  relaunchApp: () => ipcRenderer.invoke("app:relaunch"),
   platform: 'win32'
 });
