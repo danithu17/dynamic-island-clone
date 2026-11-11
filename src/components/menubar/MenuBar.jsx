@@ -27,8 +27,8 @@ import ClipboardDropdown from "./ClipboardDropdown";
 import WifiDropdown from "./WifiDropdown";
 import BluetoothDropdown from "./BluetoothDropdown";
 import VolumeDropdown from "./VolumeDropdown";
-import ControlCenterDropdown from "./ControlCenterDropdown";
-import ClockDropdown from "./ClockDropdown";
+import ControlCenter from "./ControlCenter";
+import ClockPanel from "./ClockPanel";
 import BatteryDropdown from "./BatteryDropdown";
 
 export default function MenuBar({
@@ -40,6 +40,7 @@ export default function MenuBar({
   onOpenSettings,
   onOpenAbout,
   onStartTimer,
+  onStopTimer,
   mediaTrack,
   timerRunning,
   timerSecondsLeft,
@@ -494,9 +495,9 @@ export default function MenuBar({
         onClose={() => setActiveMenu(null)}
         anchorRight={panelAnchor.right}
         top={stripHeight + 4}
-        width={310}
+        width={320}
       >
-        <ControlCenterDropdown mediaTrack={mediaTrack} onClose={() => setActiveMenu(null)} />
+        <ControlCenter mediaTrack={mediaTrack} onClose={() => setActiveMenu(null)} />
       </DropdownPanel>
 
       {/* 12. Clock / Calendar Dropdown */}
@@ -505,9 +506,15 @@ export default function MenuBar({
         onClose={() => setActiveMenu(null)}
         anchorRight={panelAnchor.right}
         top={stripHeight + 4}
-        width={270}
+        width={320}
       >
-        <ClockDropdown onStartTimer={onStartTimer} onClose={() => setActiveMenu(null)} />
+        <ClockPanel
+          onStartTimer={onStartTimer}
+          timerRunning={timerRunning}
+          timerSecondsLeft={timerSecondsLeft}
+          onStopTimer={onStopTimer}
+          onClose={() => setActiveMenu(null)}
+        />
       </DropdownPanel>
     </>
   );

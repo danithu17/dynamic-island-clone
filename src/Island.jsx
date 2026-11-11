@@ -492,6 +492,7 @@ export default function Island() {
         timerRunning={timerRunning}
         timerSecondsLeft={timerSecondsLeft}
         onStartTimer={startTimer}
+        onStopTimer={stopTimer}
         onOpenSettings={(view) => {
           setActiveView(view === "media" ? "media" : "settings");
           setMode("expanded");

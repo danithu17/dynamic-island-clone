@@ -71,7 +71,9 @@ test("MenuBar Components: exist and are free of Apple trademarks", () => {
     "BluetoothDropdown.jsx",
     "VolumeDropdown.jsx",
     "ControlCenterDropdown.jsx",
+    "ControlCenter.jsx",
     "ClockDropdown.jsx",
+    "ClockPanel.jsx",
     "BatteryDropdown.jsx",
   ];
 
@@ -110,4 +112,33 @@ test("AboutCredits: lists koffi and MIT license acknowledgement", () => {
   const content = fs.readFileSync(aboutPath, "utf8");
   assert.match(content, /koffi/i, "AboutCredits must credit koffi");
   assert.match(content, /MIT License/i, "AboutCredits must state MIT License for koffi");
+});
+
+test("tasksStorage: manages calendar tasks and reminders", () => {
+  const { TasksStorage } = require("../src/services/tasksStorage");
+  const storage = new TasksStorage();
+  const initialCount = storage.getTasks().length;
+  assert.ok(initialCount >= 0);
+
+  const newTask = storage.addTask({
+    title: "Test Antigravity Task",
+    date: "2026-11-15",
+    time: "11:30 AM",
+    tag: "Work",
+  });
+  assert.ok(newTask && newTask.id);
+  assert.strictEqual(newTask.title, "Test Antigravity Task");
+
+  // Filter by date
+  const dateTasks = storage.getTasksForDate("2026-11-15");
+  assert.ok(dateTasks.some((t) => t.id === newTask.id));
+
+  // Toggle completion
+  storage.toggleTask(newTask.id);
+  const toggled = storage.getTasks().find((t) => t.id === newTask.id);
+  assert.strictEqual(toggled.completed, true);
+
+  // Delete
+  storage.deleteTask(newTask.id);
+  assert.strictEqual(storage.getTasks().some((t) => t.id === newTask.id), false);
 });
