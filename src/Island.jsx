@@ -4,7 +4,6 @@ import { Settings, Music, Zap, Battery, ArrowLeft, Timer as TimerIcon, Play, Squ
 import "./App.css";
 import MediaControls from "./components/MediaControls";
 import QuickToggles from "./components/QuickToggles";
-import SettingsView from "./components/SettingsView";
 import SmartAlertView from "./components/SmartAlertView";
 import DragMouthView from "./components/DragMouthView";
 import ShelfView from "./components/ShelfView";
@@ -495,14 +494,14 @@ export default function Island() {
         onStartTimer={startTimer}
         onStopTimer={stopTimer}
         onOpenSettings={(view) => {
-          setActiveView(view === "media" ? "media" : "settings");
-          setMode("expanded");
-          window.electronAPI?.setIgnoreMouseEvents?.(false);
+          if (window.electronAPI?.openSettingsWindow) {
+            window.electronAPI.openSettingsWindow(view === "media" ? "features" : (view || "general"));
+          }
         }}
         onOpenAbout={() => {
-          setActiveView("settings");
-          setMode("expanded");
-          window.electronAPI?.setIgnoreMouseEvents?.(false);
+          if (window.electronAPI?.openSettingsWindow) {
+            window.electronAPI.openSettingsWindow("about");
+          }
         }}
       />
       <div
@@ -757,23 +756,28 @@ export default function Island() {
                   </button>
                 )}
 
-                {activeView !== "settings" && (
-                  <button
-                    onClick={() => setActiveView("settings")}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "rgba(255, 255, 255, 0.65)",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      padding: 4,
-                    }}
-                    title="Settings"
-                  >
-                    <Settings size={14} />
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    if (window.electronAPI?.openSettingsWindow) {
+                      window.electronAPI.openSettingsWindow("general");
+                    }
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "rgba(255, 255, 255, 0.65)",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: 4,
+                    transition: "color 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255, 255, 255, 0.65)")}
+                  title="Open Settings Window"
+                >
+                  <Settings size={14} />
+                </button>
               </div>
             </div>
 
@@ -851,18 +855,8 @@ export default function Island() {
                       )}
                     </div>
                   </div>
-                ) : activeView === "shelf" ? (
-                  <ShelfView onClose={() => setActiveView("media")} />
                 ) : (
-                  <SettingsView
-                    appVersion={appVersion}
-                    alwaysOnTop={alwaysOnTop}
-                    onToggleAlwaysOnTop={(enable) => {
-                      setAlwaysOnTop(enable);
-                      window.electronAPI?.setAlwaysOnTop?.(enable);
-                    }}
-                    onClose={() => setActiveView("media")}
-                  />
+                  <ShelfView onClose={() => setActiveView("media")} />
                 )}
               </ErrorBoundary>
             </div>

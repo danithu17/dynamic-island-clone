@@ -58,7 +58,7 @@ test("Aura Island: Island.jsx has compact notch idle size, spring transitions, a
 
   assert.ok(content.includes("ErrorBoundary"), "Must wrap view in ErrorBoundary");
   assert.ok(content.includes("MediaControls"), "Must include MediaControls");
-  assert.ok(content.includes("SettingsView"), "Must include SettingsView");
+  assert.ok(content.includes("openSettingsWindow"), "Must include openSettingsWindow trigger");
   assert.ok(content.includes("stiffness: 350"), "Must have spring physics stiffness: 350");
   assert.ok(content.includes("damping: 28"), "Must have spring physics damping: 28");
 });
