@@ -1,0 +1,45 @@
+{
+  "app": "Windows Terminal / PowerShell / Command Prompt",
+  "processNames": ["windowsterminal", "powershell", "pwsh", "cmd"],
+  "menus": [
+    {
+      "label": "File",
+      "items": [
+        { "label": "New Tab", "shortcut": "Ctrl+Shift+T", "action": "Ctrl+Shift+T" },
+        { "label": "New Window", "shortcut": "Ctrl+Shift+N", "action": "Ctrl+Shift+N" },
+        { "type": "separator" },
+        { "label": "Close Tab", "shortcut": "Ctrl+Shift+W", "action": "Ctrl+Shift+W" },
+        { "label": "Close Pane", "shortcut": "Ctrl+Shift+W", "action": "Ctrl+Shift+W" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "items": [
+        { "label": "Copy", "shortcut": "Ctrl+Shift+C", "action": "Ctrl+Shift+C" },
+        { "label": "Paste", "shortcut": "Ctrl+Shift+V", "action": "Ctrl+Shift+V" },
+        { "label": "Select All", "shortcut": "Ctrl+Shift+A", "action": "Ctrl+Shift+A" },
+        { "type": "separator" },
+        { "label": "Find", "shortcut": "Ctrl+Shift+F", "action": "Ctrl+Shift+F" }
+      ]
+    },
+    {
+      "label": "View",
+      "items": [
+        { "label": "Split Pane Vertically", "shortcut": "Alt+Shift+Plus", "action": "Alt+Shift+Plus" },
+        { "label": "Split Pane Horizontally", "shortcut": "Alt+Shift+-", "action": "Alt+Shift+-" },
+        { "type": "separator" },
+        { "label": "Zoom In", "shortcut": "Ctrl++", "action": "Ctrl++" },
+        { "label": "Zoom Out", "shortcut": "Ctrl+-", "action": "Ctrl+-" },
+        { "label": "Reset Zoom", "shortcut": "Ctrl+0", "action": "Ctrl+0" },
+        { "type": "separator" },
+        { "label": "Toggle Full Screen", "shortcut": "F11", "action": "F11" }
+      ]
+    },
+    {
+      "label": "Help",
+      "items": [
+        { "label": "Documentation", "shortcut": "F1", "action": "F1" }
+      ]
+    }
+  ]
+}

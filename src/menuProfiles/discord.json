@@ -1,0 +1,49 @@
+{
+  "app": "Discord",
+  "processNames": ["discord"],
+  "menus": [
+    {
+      "label": "File",
+      "items": [
+        { "label": "Quick Switcher", "shortcut": "Ctrl+K", "action": "Ctrl+K" },
+        { "label": "Search", "shortcut": "Ctrl+F", "action": "Ctrl+F" },
+        { "type": "separator" },
+        { "label": "Close", "shortcut": "Alt+F4", "action": "Alt+F4" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "items": [
+        { "label": "Undo", "shortcut": "Ctrl+Z", "action": "Ctrl+Z" },
+        { "label": "Redo", "shortcut": "Ctrl+Y", "action": "Ctrl+Y" },
+        { "type": "separator" },
+        { "label": "Cut", "shortcut": "Ctrl+X", "action": "Ctrl+X" },
+        { "label": "Copy", "shortcut": "Ctrl+C", "action": "Ctrl+C" },
+        { "label": "Paste", "shortcut": "Ctrl+V", "action": "Ctrl+V" },
+        { "label": "Select All", "shortcut": "Ctrl+A", "action": "Ctrl+A" }
+      ]
+    },
+    {
+      "label": "Navigate",
+      "items": [
+        { "label": "Navigate to Previous Server", "shortcut": "Ctrl+Alt+Up", "action": "Ctrl+Alt+Up" },
+        { "label": "Navigate to Next Server", "shortcut": "Ctrl+Alt+Down", "action": "Ctrl+Alt+Down" },
+        { "label": "Navigate to Previous Channel", "shortcut": "Alt+Up", "action": "Alt+Up" },
+        { "label": "Navigate to Next Channel", "shortcut": "Alt+Down", "action": "Alt+Down" }
+      ]
+    },
+    {
+      "label": "Voice",
+      "items": [
+        { "label": "Toggle Mute", "shortcut": "Ctrl+Shift+M", "action": "Ctrl+Shift+M" },
+        { "label": "Toggle Deafen", "shortcut": "Ctrl+Shift+D", "action": "Ctrl+Shift+D" }
+      ]
+    },
+    {
+      "label": "Help",
+      "items": [
+        { "label": "Discord Support", "shortcut": "F1", "action": "F1" }
+      ]
+    }
+  ]
+}

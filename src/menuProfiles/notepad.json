@@ -1,0 +1,51 @@
+{
+  "app": "Notepad",
+  "processNames": ["notepad"],
+  "menus": [
+    {
+      "label": "File",
+      "items": [
+        { "label": "New Tab", "shortcut": "Ctrl+N", "action": "Ctrl+N" },
+        { "label": "New Window", "shortcut": "Ctrl+Shift+N", "action": "Ctrl+Shift+N" },
+        { "label": "Open...", "shortcut": "Ctrl+O", "action": "Ctrl+O" },
+        { "label": "Save", "shortcut": "Ctrl+S", "action": "Ctrl+S" },
+        { "label": "Save As...", "shortcut": "Ctrl+Shift+S", "action": "Ctrl+Shift+S" },
+        { "type": "separator" },
+        { "label": "Close Tab", "shortcut": "Ctrl+W", "action": "Ctrl+W" },
+        { "label": "Close Window", "shortcut": "Ctrl+Shift+W", "action": "Ctrl+Shift+W" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "items": [
+        { "label": "Undo", "shortcut": "Ctrl+Z", "action": "Ctrl+Z" },
+        { "label": "Redo", "shortcut": "Ctrl+Y", "action": "Ctrl+Y" },
+        { "type": "separator" },
+        { "label": "Cut", "shortcut": "Ctrl+X", "action": "Ctrl+X" },
+        { "label": "Copy", "shortcut": "Ctrl+C", "action": "Ctrl+C" },
+        { "label": "Paste", "shortcut": "Ctrl+V", "action": "Ctrl+V" },
+        { "label": "Select All", "shortcut": "Ctrl+A", "action": "Ctrl+A" },
+        { "type": "separator" },
+        { "label": "Find...", "shortcut": "Ctrl+F", "action": "Ctrl+F" },
+        { "label": "Find and Replace...", "shortcut": "Ctrl+H", "action": "Ctrl+H" },
+        { "label": "Go To...", "shortcut": "Ctrl+G", "action": "Ctrl+G" }
+      ]
+    },
+    {
+      "label": "View",
+      "items": [
+        { "label": "Zoom In", "shortcut": "Ctrl++", "action": "Ctrl++" },
+        { "label": "Zoom Out", "shortcut": "Ctrl+-", "action": "Ctrl+-" },
+        { "label": "Restore Default Zoom", "shortcut": "Ctrl+0", "action": "Ctrl+0" },
+        { "type": "separator" },
+        { "label": "Word Wrap", "shortcut": "Alt+Z", "action": "Alt+Z" }
+      ]
+    },
+    {
+      "label": "Help",
+      "items": [
+        { "label": "Help", "shortcut": "F1", "action": "F1" }
+      ]
+    }
+  ]
+}

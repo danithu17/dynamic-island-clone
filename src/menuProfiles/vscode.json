@@ -1,0 +1,87 @@
+{
+  "app": "Visual Studio Code",
+  "processNames": ["code", "cursor", "vscodium", "code - insiders"],
+  "menus": [
+    {
+      "label": "File",
+      "items": [
+        { "label": "New Text File", "shortcut": "Ctrl+N", "action": "Ctrl+N" },
+        { "label": "New Window", "shortcut": "Ctrl+Shift+N", "action": "Ctrl+Shift+N" },
+        { "type": "separator" },
+        { "label": "Open File...", "shortcut": "Ctrl+O", "action": "Ctrl+O" },
+        { "label": "Open Folder...", "shortcut": "Ctrl+K Ctrl+O", "action": "Ctrl+O" },
+        { "type": "separator" },
+        { "label": "Save", "shortcut": "Ctrl+S", "action": "Ctrl+S" },
+        { "label": "Save As...", "shortcut": "Ctrl+Shift+S", "action": "Ctrl+Shift+S" },
+        { "label": "Save All", "shortcut": "Ctrl+K S", "action": "Ctrl+S" },
+        { "type": "separator" },
+        { "label": "Close Editor", "shortcut": "Ctrl+W", "action": "Ctrl+W" },
+        { "label": "Close Window", "shortcut": "Ctrl+Shift+W", "action": "Ctrl+Shift+W" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "items": [
+        { "label": "Undo", "shortcut": "Ctrl+Z", "action": "Ctrl+Z" },
+        { "label": "Redo", "shortcut": "Ctrl+Y", "action": "Ctrl+Y" },
+        { "type": "separator" },
+        { "label": "Cut", "shortcut": "Ctrl+X", "action": "Ctrl+X" },
+        { "label": "Copy", "shortcut": "Ctrl+C", "action": "Ctrl+C" },
+        { "label": "Paste", "shortcut": "Ctrl+V", "action": "Ctrl+V" },
+        { "label": "Find", "shortcut": "Ctrl+F", "action": "Ctrl+F" },
+        { "label": "Replace", "shortcut": "Ctrl+H", "action": "Ctrl+H" },
+        { "type": "separator" },
+        { "label": "Find in Files", "shortcut": "Ctrl+Shift+F", "action": "Ctrl+Shift+F" },
+        { "label": "Toggle Line Comment", "shortcut": "Ctrl+/", "action": "Ctrl+/" }
+      ]
+    },
+    {
+      "label": "Selection",
+      "items": [
+        { "label": "Select All", "shortcut": "Ctrl+A", "action": "Ctrl+A" },
+        { "label": "Expand Selection", "shortcut": "Shift+Alt+Right", "action": "Shift+Alt+Right" },
+        { "label": "Shrink Selection", "shortcut": "Shift+Alt+Left", "action": "Shift+Alt+Left" },
+        { "label": "Add Cursor Above", "shortcut": "Ctrl+Alt+Up", "action": "Ctrl+Alt+Up" },
+        { "label": "Add Cursor Below", "shortcut": "Ctrl+Alt+Down", "action": "Ctrl+Alt+Down" }
+      ]
+    },
+    {
+      "label": "View",
+      "items": [
+        { "label": "Command Palette...", "shortcut": "Ctrl+Shift+P", "action": "Ctrl+Shift+P" },
+        { "label": "Open View...", "shortcut": "Ctrl+Q", "action": "Ctrl+Q" },
+        { "type": "separator" },
+        { "label": "Explorer", "shortcut": "Ctrl+Shift+E", "action": "Ctrl+Shift+E" },
+        { "label": "Search", "shortcut": "Ctrl+Shift+F", "action": "Ctrl+Shift+F" },
+        { "label": "Source Control", "shortcut": "Ctrl+Shift+G", "action": "Ctrl+Shift+G" },
+        { "label": "Run and Debug", "shortcut": "Ctrl+Shift+D", "action": "Ctrl+Shift+D" },
+        { "label": "Extensions", "shortcut": "Ctrl+Shift+X", "action": "Ctrl+Shift+X" },
+        { "type": "separator" },
+        { "label": "Terminal", "shortcut": "Ctrl+`", "action": "Ctrl+`" },
+        { "label": "Toggle Primary Side Bar", "shortcut": "Ctrl+B", "action": "Ctrl+B" },
+        { "label": "Toggle Full Screen", "shortcut": "F11", "action": "F11" }
+      ]
+    },
+    {
+      "label": "Go",
+      "items": [
+        { "label": "Go to File...", "shortcut": "Ctrl+P", "action": "Ctrl+P" },
+        { "label": "Go to Symbol in Workspace...", "shortcut": "Ctrl+T", "action": "Ctrl+T" },
+        { "label": "Go to Line/Column...", "shortcut": "Ctrl+G", "action": "Ctrl+G" }
+      ]
+    },
+    {
+      "label": "Terminal",
+      "items": [
+        { "label": "New Terminal", "shortcut": "Ctrl+Shift+`", "action": "Ctrl+Shift+`" },
+        { "label": "Split Terminal", "shortcut": "Ctrl+Shift+5", "action": "Ctrl+Shift+5" }
+      ]
+    },
+    {
+      "label": "Help",
+      "items": [
+        { "label": "Documentation", "shortcut": "F1", "action": "F1" }
+      ]
+    }
+  ]
+}

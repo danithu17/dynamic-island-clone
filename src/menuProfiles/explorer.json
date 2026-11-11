@@ -1,0 +1,56 @@
+{
+  "app": "File Explorer",
+  "processNames": ["explorer"],
+  "menus": [
+    {
+      "label": "File",
+      "items": [
+        { "label": "New Window", "shortcut": "Ctrl+N", "action": "Ctrl+N" },
+        { "label": "New Tab", "shortcut": "Ctrl+T", "action": "Ctrl+T" },
+        { "type": "separator" },
+        { "label": "Close Tab", "shortcut": "Ctrl+W", "action": "Ctrl+W" },
+        { "label": "Close Window", "shortcut": "Alt+F4", "action": "Alt+F4" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "items": [
+        { "label": "Undo", "shortcut": "Ctrl+Z", "action": "Ctrl+Z" },
+        { "label": "Redo", "shortcut": "Ctrl+Y", "action": "Ctrl+Y" },
+        { "type": "separator" },
+        { "label": "Cut", "shortcut": "Ctrl+X", "action": "Ctrl+X" },
+        { "label": "Copy", "shortcut": "Ctrl+C", "action": "Ctrl+C" },
+        { "label": "Paste", "shortcut": "Ctrl+V", "action": "Ctrl+V" },
+        { "label": "Select All", "shortcut": "Ctrl+A", "action": "Ctrl+A" },
+        { "label": "Invert Selection", "shortcut": "Alt+V I", "action": "Ctrl+A" }
+      ]
+    },
+    {
+      "label": "Navigate",
+      "items": [
+        { "label": "Back", "shortcut": "Alt+Left", "action": "Alt+Left" },
+        { "label": "Forward", "shortcut": "Alt+Right", "action": "Alt+Right" },
+        { "label": "Up One Folder", "shortcut": "Alt+Up", "action": "Alt+Up" },
+        { "type": "separator" },
+        { "label": "Search Box", "shortcut": "Ctrl+F", "action": "Ctrl+F" },
+        { "label": "Address Bar", "shortcut": "Ctrl+L", "action": "Ctrl+L" }
+      ]
+    },
+    {
+      "label": "View",
+      "items": [
+        { "label": "Refresh", "shortcut": "F5", "action": "F5" },
+        { "label": "Preview Pane", "shortcut": "Alt+P", "action": "Alt+P" },
+        { "label": "Details Pane", "shortcut": "Alt+Shift+P", "action": "Alt+Shift+P" },
+        { "type": "separator" },
+        { "label": "Full Screen", "shortcut": "F11", "action": "F11" }
+      ]
+    },
+    {
+      "label": "Help",
+      "items": [
+        { "label": "Help", "shortcut": "F1", "action": "F1" }
+      ]
+    }
+  ]
+}

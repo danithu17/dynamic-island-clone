@@ -1,0 +1,46 @@
+{
+  "app": "Microsoft PowerPoint",
+  "processNames": ["powerpnt"],
+  "menus": [
+    {
+      "label": "File",
+      "items": [
+        { "label": "New Presentation", "shortcut": "Ctrl+N", "action": "Ctrl+N" },
+        { "label": "Open...", "shortcut": "Ctrl+O", "action": "Ctrl+O" },
+        { "label": "Save", "shortcut": "Ctrl+S", "action": "Ctrl+S" },
+        { "label": "Save As...", "shortcut": "F12", "action": "F12" },
+        { "type": "separator" },
+        { "label": "Close", "shortcut": "Ctrl+W", "action": "Ctrl+W" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "items": [
+        { "label": "Undo", "shortcut": "Ctrl+Z", "action": "Ctrl+Z" },
+        { "label": "Redo", "shortcut": "Ctrl+Y", "action": "Ctrl+Y" },
+        { "type": "separator" },
+        { "label": "Cut", "shortcut": "Ctrl+X", "action": "Ctrl+X" },
+        { "label": "Copy", "shortcut": "Ctrl+C", "action": "Ctrl+C" },
+        { "label": "Paste", "shortcut": "Ctrl+V", "action": "Ctrl+V" },
+        { "label": "Select All", "shortcut": "Ctrl+A", "action": "Ctrl+A" },
+        { "type": "separator" },
+        { "label": "Duplicate Slide", "shortcut": "Ctrl+D", "action": "Ctrl+D" },
+        { "label": "New Slide", "shortcut": "Ctrl+M", "action": "Ctrl+M" }
+      ]
+    },
+    {
+      "label": "Slide Show",
+      "items": [
+        { "label": "Start From Beginning", "shortcut": "F5", "action": "F5" },
+        { "label": "Start From Current Slide", "shortcut": "Shift+F5", "action": "Shift+F5" },
+        { "label": "End Show", "shortcut": "Esc", "action": "Esc" }
+      ]
+    },
+    {
+      "label": "Help",
+      "items": [
+        { "label": "PowerPoint Help", "shortcut": "F1", "action": "F1" }
+      ]
+    }
+  ]
+}

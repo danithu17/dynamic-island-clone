@@ -14,6 +14,15 @@ try {
   console.error("Failed to load koffi:", e);
 }
 
+let appMenuService = null;
+try {
+  appMenuService = require("./appMenuService").appMenuService;
+} catch (_) {
+  try {
+    appMenuService = require("../services/appMenuService").appMenuService;
+  } catch (_) {}
+}
+
 // Win32 Constants
 const ABE_LEFT = 0;
 const ABE_TOP = 1;
@@ -68,6 +77,8 @@ let CloseHandle = null;
 let QueryFullProcessImageNameW = null;
 let SystemParametersInfoW = null;
 let SetWindowPos = null;
+let GetWindowLongPtrW = null;
+let SetWindowLongPtrW = null;
 let KBDLLHOOKSTRUCT = null;
 let HOOKPROC = null;
 let SetWindowsHookExW = null;
@@ -118,6 +129,8 @@ if (koffi && process.platform === "win32") {
     GetMonitorInfoW = user32.func("int __stdcall GetMonitorInfoW(uintptr_t hMonitor, _Inout_ APPBAR_MONITORINFO *lpmi)");
     SystemParametersInfoW = user32.func("int __stdcall SystemParametersInfoW(uint32 uiAction, uint32 uiParam, _Inout_ APPBAR_RECT *pvParam, uint32 fWinIni)");
     SetWindowPos = user32.func("int __stdcall SetWindowPos(uintptr_t hWnd, uintptr_t hWndInsertAfter, int X, int Y, int cx, int cy, uint32 uFlags)");
+    GetWindowLongPtrW = user32.func("uintptr_t __stdcall GetWindowLongPtrW(uintptr_t hWnd, int nIndex)");
+    SetWindowLongPtrW = user32.func("uintptr_t __stdcall SetWindowLongPtrW(uintptr_t hWnd, int nIndex, uintptr_t dwNewLong)");
 
     OpenProcess = kernel32.func("uintptr_t __stdcall OpenProcess(uint32 dwDesiredAccess, int bInheritHandle, uint32 dwProcessId)");
     CloseHandle = kernel32.func("int __stdcall CloseHandle(uintptr_t hObject)");
@@ -220,6 +233,15 @@ class AppBarService {
     try {
       const hwndBuf = win.getNativeWindowHandle();
       this.hwnd = Number(hwndBuf.readBigUInt64LE(0));
+
+      // Make window non-activating so clicking menus never steals focus from active app
+      if (GetWindowLongPtrW && SetWindowLongPtrW && this.hwnd) {
+        try {
+          const curEx = Number(GetWindowLongPtrW(this.hwnd, -20 /* GWL_EXSTYLE */));
+          const newEx = curEx | 0x08000000 /* WS_EX_NOACTIVATE */;
+          SetWindowLongPtrW(this.hwnd, -20, newEx);
+        } catch (_) {}
+      }
     } catch (e) {
       this.logger("Failed to extract HWND from window handle:", e);
       return;
@@ -761,6 +783,17 @@ class AppBarService {
         const cached = this.appInfoCache.get(exePath);
         this.activeApp = cached;
         this.emitActiveApp(cached);
+
+        if (appMenuService && this.mainWindow && !this.mainWindow.isDestroyed()) {
+          appMenuService.getMenusForApp(cached, hwnd).then((menusData) => {
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+              this.mainWindow.webContents.send("menubar:app-menus-changed", {
+                ...menusData,
+                hwnd,
+              });
+            }
+          }).catch(() => {});
+        }
         return;
       }
 
@@ -775,10 +808,10 @@ class AppBarService {
           .replace(/\b\w/g, (c) => c.toUpperCase());
       }
 
-      // Extract small icon via Electron app.getFileIcon
+      // Extract high-res icon via Electron app.getFileIcon
       let iconDataUrl = "";
       try {
-        const icon = await app.getFileIcon(exePath, { size: "small" });
+        const icon = await app.getFileIcon(exePath, { size: "large" });
         if (icon && !icon.isEmpty()) {
           iconDataUrl = icon.toDataURL();
         }
@@ -793,6 +826,17 @@ class AppBarService {
       this.appInfoCache.set(exePath, appData);
       this.activeApp = appData;
       this.emitActiveApp(appData);
+
+      if (appMenuService && this.mainWindow && !this.mainWindow.isDestroyed()) {
+        appMenuService.getMenusForApp(appData, hwnd).then((menusData) => {
+          if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            this.mainWindow.webContents.send("menubar:app-menus-changed", {
+              ...menusData,
+              hwnd,
+            });
+          }
+        }).catch(() => {});
+      }
     } catch (_) {
     } finally {
       if (hProc && CloseHandle) {

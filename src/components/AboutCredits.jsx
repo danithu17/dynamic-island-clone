@@ -24,7 +24,7 @@ export default function AboutCredits({ textColor = "#ffffff", appVersion = "5.5.
         overflowY: "auto",
         scrollbarWidth: "none",
         color: textColor,
-        fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+        fontFamily: '"Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif',
       }}
     >
       {/* Header Banner */}
@@ -125,7 +125,8 @@ export default function AboutCredits({ textColor = "#ffffff", appVersion = "5.5.
         <div style={{ marginTop: 4, fontSize: 10.5, lineHeight: 1.45, opacity: 0.8 }}>
           <strong>Native Bridges & Components:</strong>
           <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
-            <li><strong>koffi</strong> (MIT License, Damien Erambert) – Ultra-fast C FFI used for native Win32 AppBar registration & foreground window tracking.</li>
+            <li><strong>koffi</strong> (MIT License, Damien Erambert) – Ultra-fast C FFI used for native Win32 AppBar registration, SendInput dispatch, & non-activating window management.</li>
+            <li><strong>Windows UI Automation</strong> (Microsoft) – Native desktop accessibility tree inspection for menu bar mirroring.</li>
             <li><strong>Lucide Icons</strong> (ISC License) – Clean, beautiful UI icons.</li>
             <li><strong>Framer Motion</strong> (MIT License) – Fluid physics-based springs and morph animations.</li>
           </ul>

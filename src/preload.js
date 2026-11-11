@@ -97,6 +97,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   launchApp: (appKey) => ipcRenderer.invoke("system:launch-app", appKey),
   quitApp: () => ipcRenderer.invoke("app:quit"),
   relaunchApp: () => ipcRenderer.invoke("app:relaunch"),
+  // Per-App Menu APIs (Part A)
+  onAppMenusChanged: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on("menubar:app-menus-changed", handler);
+    return () => ipcRenderer.removeListener("menubar:app-menus-changed", handler);
+  },
+  getCurrentAppMenus: () => ipcRenderer.invoke("appmenu:get-current"),
+  executeAppMenuItem: (itemData) => ipcRenderer.invoke("appmenu:execute-item", itemData),
+  getAppMenuProfiles: () => ipcRenderer.invoke("appmenu:get-profiles"),
+  saveAppMenuProfile: (profileData) => ipcRenderer.invoke("appmenu:save-profile", profileData),
+  resetAppMenuProfiles: () => ipcRenderer.invoke("appmenu:reset-profiles"),
+  setAppMenuEnabled: (enabled) => ipcRenderer.invoke("appmenu:set-enabled", enabled),
+  onOpenFirstMenu: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on("menubar:open-first-menu", handler);
+    return () => ipcRenderer.removeListener("menubar:open-first-menu", handler);
+  },
   onKeyboardVolumeChange: (callback) => {
     const handler = (event, data) => callback(data);
     ipcRenderer.on('menubar:volume-change', handler);

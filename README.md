@@ -96,6 +96,40 @@ Download the latest release for your platform:
 
 ---
 
+## Per-App Menu Profiles
+
+Aura Island features macOS-style per-application menus on the top bar using a 3-layer architecture:
+1. **Layer 1: UI Automation Mirror** — Dynamically queries the foreground window's `ControlType.MenuBar` and mirrors native menus.
+2. **Layer 2: Curated Profiles** — Process-specific JSON profiles with application-tailored actions, items, and keyboard shortcuts.
+3. **Layer 3: Generic Fallback** — Standard desktop commands (`File`, `Edit`, `View`, `Window`, `Help`) available for all apps.
+
+### Profile Schema (`src/menuProfiles/*.json`)
+
+```json
+{
+  "app": "Application Name",
+  "processNames": ["processname", "alternate_proc"],
+  "menus": [
+    {
+      "label": "File",
+      "items": [
+        { "label": "New Tab", "shortcut": "Ctrl+T", "action": "Ctrl+T" },
+        { "type": "separator" },
+        { "label": "Close Window", "shortcut": "Alt+F4", "action": "Alt+F4" }
+      ]
+    }
+  ]
+}
+```
+
+- `app`: Human-readable application title.
+- `processNames`: Array of lowercase executable names (without `.exe`) matched against active windows.
+- `menus`: Array of top-level menus (`File`, `Edit`, etc.).
+- `items`: Sub-items within the dropdown. Set `{ "type": "separator" }` for divider lines, and provide `shortcut` and `action` strings (`Ctrl+N`, `Alt+F4`, `Ctrl+Shift+P`, etc.).
+- Actions are dispatched via Win32 `SendInput` without stealing focus from the active app.
+
+---
+
 ## Build & Development
 
 ### Prerequisites

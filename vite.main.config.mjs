@@ -6,14 +6,23 @@ function copyServicesPlugin() {
   return {
     name: 'copy-services-plugin',
     writeBundle() {
-      const srcDir = path.resolve('src/services');
-      const destDir = path.resolve('.vite/build/services');
-      if (fs.existsSync(srcDir)) {
-        fs.mkdirSync(destDir, { recursive: true });
-        for (const file of fs.readdirSync(srcDir)) {
-          fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file));
+      const copyDir = (src, dest) => {
+        if (!fs.existsSync(src)) return;
+        fs.mkdirSync(dest, { recursive: true });
+        for (const item of fs.readdirSync(src)) {
+          const s = path.join(src, item);
+          const d = path.join(dest, item);
+          if (fs.statSync(s).isDirectory()) {
+            copyDir(s, d);
+          } else {
+            fs.copyFileSync(s, d);
+          }
         }
-      }
+      };
+
+      copyDir(path.resolve('src/services'), path.resolve('.vite/build/services'));
+      copyDir(path.resolve('src/menuProfiles'), path.resolve('.vite/build/menuProfiles'));
+      copyDir(path.resolve('src/helpers/bin'), path.resolve('.vite/build/helpers/bin'));
     },
   };
 }

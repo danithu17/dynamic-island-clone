@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { SlidersHorizontal, Bell, Info, Monitor, LayoutTemplate } from "lucide-react";
+import { SlidersHorizontal, Bell, Info, Monitor, LayoutTemplate, Code } from "lucide-react";
 import AboutCredits from "./AboutCredits";
+import MenuProfilesSettings from "./MenuProfilesSettings";
 import { alertQueue } from "../services/alertQueue";
 
 export default function SettingsView({
@@ -228,6 +229,27 @@ export default function SettingsView({
         >
           <Bell size={14} />
           Smart Alerts
+        </button>
+
+        <button
+          onClick={() => setActiveCategory("profiles")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: "none",
+            background: activeCategory === "profiles" ? "rgba(255, 255, 255, 0.14)" : "transparent",
+            color: activeCategory === "profiles" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+            fontSize: 11.5,
+            fontWeight: 600,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <Code size={14} />
+          Menu Profiles
         </button>
 
         <button
@@ -802,6 +824,8 @@ export default function SettingsView({
             </div>
           </div>
         )}
+
+        {activeCategory === "profiles" && <MenuProfilesSettings />}
 
         {activeCategory === "about" && <AboutCredits textColor={textColor} appVersion={appVersion} />}
       </div>

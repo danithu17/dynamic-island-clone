@@ -11,6 +11,7 @@ const {
   nativeImage,
   powerMonitor,
   clipboard,
+  globalShortcut,
 } = require("electron");
 
 // Disable Chromium background timer throttling and occlusion tracking so timers run continuously
@@ -55,6 +56,23 @@ try {
     }
   } catch (err) {
     console.error("Critical: Could not load appBarService:", err);
+  }
+}
+
+let appMenuService;
+try {
+  appMenuService = require("./services/appMenuService").appMenuService;
+} catch (_) {
+  try {
+    const devPath = path.join(process.cwd(), "src/services/appMenuService.js");
+    if (fs.existsSync(devPath)) {
+      appMenuService = require(devPath).appMenuService;
+    } else {
+      const appPath = path.join(app.getAppPath(), ".vite/build/services/appMenuService.js");
+      appMenuService = require(appPath).appMenuService;
+    }
+  } catch (err) {
+    console.error("Critical: Could not load appMenuService:", err);
   }
 }
 
@@ -872,6 +890,52 @@ ipcMain.handle("menubar:get-active-app", () => {
   return appBarService.getActiveApp();
 });
 
+// --- Per-App Menu IPC Handlers (Part A) ---
+ipcMain.handle("appmenu:get-current", async () => {
+  if (appMenuService && appBarService) {
+    const activeApp = appBarService.getActiveApp();
+    const hwnd = appBarService.lastForegroundHwnd;
+    return appMenuService.getMenusForApp(activeApp, hwnd);
+  }
+  return { layer: "generic", menus: [] };
+});
+
+ipcMain.handle("appmenu:execute-item", async (event, itemData) => {
+  if (appMenuService) {
+    return appMenuService.executeMenuItem(itemData);
+  }
+  return false;
+});
+
+ipcMain.handle("appmenu:get-profiles", async () => {
+  if (appMenuService) {
+    return appMenuService.getAllProfiles();
+  }
+  return [];
+});
+
+ipcMain.handle("appmenu:save-profile", async (event, profileData) => {
+  if (appMenuService) {
+    return appMenuService.saveCustomProfile(profileData);
+  }
+  return false;
+});
+
+ipcMain.handle("appmenu:reset-profiles", async () => {
+  if (appMenuService) {
+    return appMenuService.resetProfilesToDefault();
+  }
+  return false;
+});
+
+ipcMain.handle("appmenu:set-enabled", async (event, enabled) => {
+  if (appMenuService) {
+    appMenuService.isEnabled = Boolean(enabled);
+    return true;
+  }
+  return false;
+});
+
 // --- Clipboard History Tracker ---
 const clipboardHistory = [];
 let lastClipboardText = "";
@@ -1136,6 +1200,17 @@ app.whenReady().then(() => {
   const menuBarConfig = loadMenuBarSettings();
   appBarService.init(mainWindow, menuBarConfig, logToFile);
   setupClipboardMonitor();
+
+  // Register Alt+F keyboard shortcut to open first menu
+  try {
+    globalShortcut.register("Alt+F", () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("menubar:open-first-menu");
+      }
+    });
+  } catch (e) {
+    logToFile("Failed to register Alt+F global shortcut:", e);
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

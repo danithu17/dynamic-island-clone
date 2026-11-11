@@ -1,0 +1,47 @@
+{
+  "app": "Microsoft Word",
+  "processNames": ["winword"],
+  "menus": [
+    {
+      "label": "File",
+      "items": [
+        { "label": "New Document", "shortcut": "Ctrl+N", "action": "Ctrl+N" },
+        { "label": "Open...", "shortcut": "Ctrl+O", "action": "Ctrl+O" },
+        { "label": "Save", "shortcut": "Ctrl+S", "action": "Ctrl+S" },
+        { "label": "Save As...", "shortcut": "F12", "action": "F12" },
+        { "label": "Print...", "shortcut": "Ctrl+P", "action": "Ctrl+P" },
+        { "type": "separator" },
+        { "label": "Close Document", "shortcut": "Ctrl+W", "action": "Ctrl+W" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "items": [
+        { "label": "Undo", "shortcut": "Ctrl+Z", "action": "Ctrl+Z" },
+        { "label": "Redo", "shortcut": "Ctrl+Y", "action": "Ctrl+Y" },
+        { "type": "separator" },
+        { "label": "Cut", "shortcut": "Ctrl+X", "action": "Ctrl+X" },
+        { "label": "Copy", "shortcut": "Ctrl+C", "action": "Ctrl+C" },
+        { "label": "Paste", "shortcut": "Ctrl+V", "action": "Ctrl+V" },
+        { "label": "Select All", "shortcut": "Ctrl+A", "action": "Ctrl+A" },
+        { "type": "separator" },
+        { "label": "Find", "shortcut": "Ctrl+F", "action": "Ctrl+F" },
+        { "label": "Replace", "shortcut": "Ctrl+H", "action": "Ctrl+H" }
+      ]
+    },
+    {
+      "label": "Format",
+      "items": [
+        { "label": "Bold", "shortcut": "Ctrl+B", "action": "Ctrl+B" },
+        { "label": "Italic", "shortcut": "Ctrl+I", "action": "Ctrl+I" },
+        { "label": "Underline", "shortcut": "Ctrl+U", "action": "Ctrl+U" }
+      ]
+    },
+    {
+      "label": "Help",
+      "items": [
+        { "label": "Word Help", "shortcut": "F1", "action": "F1" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "app": "Google Chrome / Edge / Brave",
+  "processNames": ["chrome", "msedge", "brave"],
+  "menus": [
+    {
+      "label": "File",
+      "items": [
+        { "label": "New Tab", "shortcut": "Ctrl+T", "action": "Ctrl+T" },
+        { "label": "New Window", "shortcut": "Ctrl+N", "action": "Ctrl+N" },
+        { "label": "New Incognito Window", "shortcut": "Ctrl+Shift+N", "action": "Ctrl+Shift+N" },
+        { "type": "separator" },
+        { "label": "Reopen Closed Tab", "shortcut": "Ctrl+Shift+T", "action": "Ctrl+Shift+T" },
+        { "label": "Open File...", "shortcut": "Ctrl+O", "action": "Ctrl+O" },
+        { "type": "separator" },
+        { "label": "Close Tab", "shortcut": "Ctrl+W", "action": "Ctrl+W" },
+        { "label": "Close Window", "shortcut": "Ctrl+Shift+W", "action": "Ctrl+Shift+W" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "items": [
+        { "label": "Undo", "shortcut": "Ctrl+Z", "action": "Ctrl+Z" },
+        { "label": "Redo", "shortcut": "Ctrl+Y", "action": "Ctrl+Y" },
+        { "type": "separator" },
+        { "label": "Cut", "shortcut": "Ctrl+X", "action": "Ctrl+X" },
+        { "label": "Copy", "shortcut": "Ctrl+C", "action": "Ctrl+C" },
+        { "label": "Paste", "shortcut": "Ctrl+V", "action": "Ctrl+V" },
+        { "label": "Select All", "shortcut": "Ctrl+A", "action": "Ctrl+A" },
+        { "type": "separator" },
+        { "label": "Find...", "shortcut": "Ctrl+F", "action": "Ctrl+F" }
+      ]
+    },
+    {
+      "label": "View",
+      "items": [
+        { "label": "Reload", "shortcut": "Ctrl+R", "action": "Ctrl+R" },
+        { "label": "Hard Reload", "shortcut": "Ctrl+Shift+R", "action": "Ctrl+Shift+R" },
+        { "type": "separator" },
+        { "label": "Zoom In", "shortcut": "Ctrl++", "action": "Ctrl++" },
+        { "label": "Zoom Out", "shortcut": "Ctrl+-", "action": "Ctrl+-" },
+        { "label": "Actual Size", "shortcut": "Ctrl+0", "action": "Ctrl+0" },
+        { "type": "separator" },
+        { "label": "Developer Tools", "shortcut": "Ctrl+Shift+I", "action": "Ctrl+Shift+I" },
+        { "label": "Fullscreen", "shortcut": "F11", "action": "F11" }
+      ]
+    },
+    {
+      "label": "History",
+      "items": [
+        { "label": "Show Full History", "shortcut": "Ctrl+H", "action": "Ctrl+H" },
+        { "label": "Downloads", "shortcut": "Ctrl+J", "action": "Ctrl+J" },
+        { "label": "Clear Browsing Data", "shortcut": "Ctrl+Shift+Delete", "action": "Ctrl+Shift+Delete" }
+      ]
+    },
+    {
+      "label": "Bookmarks",
+      "items": [
+        { "label": "Bookmark This Tab", "shortcut": "Ctrl+D", "action": "Ctrl+D" },
+        { "label": "Bookmark All Tabs", "shortcut": "Ctrl+Shift+D", "action": "Ctrl+Shift+D" },
+        { "label": "Show Bookmarks Bar", "shortcut": "Ctrl+Shift+B", "action": "Ctrl+Shift+B" },
+        { "label": "Bookmark Manager", "shortcut": "Ctrl+Shift+O", "action": "Ctrl+Shift+O" }
+      ]
+    },
+    {
+      "label": "Help",
+      "items": [
+        { "label": "Help Center", "shortcut": "F1", "action": "F1" }
+      ]
+    }
+  ]
+}

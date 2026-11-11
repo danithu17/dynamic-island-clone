@@ -1,0 +1,46 @@
+{
+  "app": "Spotify",
+  "processNames": ["spotify"],
+  "menus": [
+    {
+      "label": "File",
+      "items": [
+        { "label": "New Playlist", "shortcut": "Ctrl+N", "action": "Ctrl+N" },
+        { "label": "New Playlist Folder", "shortcut": "Ctrl+Shift+N", "action": "Ctrl+Shift+N" },
+        { "type": "separator" },
+        { "label": "Close", "shortcut": "Alt+F4", "action": "Alt+F4" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "items": [
+        { "label": "Undo", "shortcut": "Ctrl+Z", "action": "Ctrl+Z" },
+        { "label": "Redo", "shortcut": "Ctrl+Y", "action": "Ctrl+Y" },
+        { "type": "separator" },
+        { "label": "Cut", "shortcut": "Ctrl+X", "action": "Ctrl+X" },
+        { "label": "Copy", "shortcut": "Ctrl+C", "action": "Ctrl+C" },
+        { "label": "Paste", "shortcut": "Ctrl+V", "action": "Ctrl+V" },
+        { "label": "Select All", "shortcut": "Ctrl+A", "action": "Ctrl+A" },
+        { "type": "separator" },
+        { "label": "Search", "shortcut": "Ctrl+K", "action": "Ctrl+K" }
+      ]
+    },
+    {
+      "label": "Playback",
+      "items": [
+        { "label": "Play / Pause", "shortcut": "Space", "action": "Space" },
+        { "label": "Next Track", "shortcut": "Ctrl+Right", "action": "Ctrl+Right" },
+        { "label": "Previous Track", "shortcut": "Ctrl+Left", "action": "Ctrl+Left" },
+        { "type": "separator" },
+        { "label": "Volume Up", "shortcut": "Ctrl+Up", "action": "Ctrl+Up" },
+        { "label": "Volume Down", "shortcut": "Ctrl+Down", "action": "Ctrl+Down" }
+      ]
+    },
+    {
+      "label": "Help",
+      "items": [
+        { "label": "Spotify Help", "shortcut": "F1", "action": "F1" }
+      ]
+    }
+  ]
+}
