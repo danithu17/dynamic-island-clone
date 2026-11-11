@@ -67,6 +67,7 @@ let OpenProcess = null;
 let CloseHandle = null;
 let QueryFullProcessImageNameW = null;
 let SystemParametersInfoW = null;
+let SetWindowPos = null;
 
 const SPI_GETWORKAREA = 0x0030;
 const SPI_SETWORKAREA = 0x002F;
@@ -111,6 +112,7 @@ if (koffi && process.platform === "win32") {
     MonitorFromWindow = user32.func("uintptr_t __stdcall MonitorFromWindow(uintptr_t hwnd, uint32 dwFlags)");
     GetMonitorInfoW = user32.func("int __stdcall GetMonitorInfoW(uintptr_t hMonitor, _Inout_ APPBAR_MONITORINFO *lpmi)");
     SystemParametersInfoW = user32.func("int __stdcall SystemParametersInfoW(uint32 uiAction, uint32 uiParam, _Inout_ APPBAR_RECT *pvParam, uint32 fWinIni)");
+    SetWindowPos = user32.func("int __stdcall SetWindowPos(uintptr_t hWnd, uintptr_t hWndInsertAfter, int X, int Y, int cx, int cy, uint32 uFlags)");
 
     OpenProcess = kernel32.func("uintptr_t __stdcall OpenProcess(uint32 dwDesiredAccess, int bInheritHandle, uint32 dwProcessId)");
     CloseHandle = kernel32.func("int __stdcall CloseHandle(uintptr_t hObject)");
@@ -127,6 +129,7 @@ class AppBarService {
     this.isRegistered = false;
     this.originalWorkArea = null;
     this.isWorkAreaModified = false;
+    this.isUpdatingPos = false;
     this.mode = "reserved"; // "reserved" | "overlay" | "autohide"
     this.stripHeight = 34; // default height in px
     this.stripMargin = 0; // margin in px
@@ -199,6 +202,18 @@ class AppBarService {
       return;
     }
 
+    // Ensure window position remains locked to monitor top edge (flush with y=0)
+    win.on("move", () => {
+      if (this.mode === "reserved" && !this.isUpdatingPos && !this.isFullscreenActive) {
+        const display = this.getTargetDisplay();
+        const cur = win.getBounds();
+        if (cur.y !== display.bounds.y || cur.x !== display.bounds.x) {
+          this.logger(`Window shifted to (${cur.x}, ${cur.y}), re-locking to monitor top (${display.bounds.x}, ${display.bounds.y})`);
+          this.positionWindowToMonitorTop();
+        }
+      }
+    });
+
     // Hook custom window callback message for system AppBar messages
     try {
       win.hookWindowMessage(WM_APPBAR_CALLBACK, (wParam, lParam) => {
@@ -233,43 +248,109 @@ class AppBarService {
     return Math.max(24, Math.min(80, this.stripHeight + this.stripMargin));
   }
 
-  getMonitorBounds() {
-    if (!GetMonitorInfoW || !this.hwnd) {
-      const display = screen.getPrimaryDisplay();
-      return {
-        left: display.bounds.x,
-        top: display.bounds.y,
-        right: display.bounds.x + display.bounds.width,
-        bottom: display.bounds.y + display.bounds.height,
-        scaleFactor: display.scaleFactor || 1,
-      };
+  getTargetDisplay() {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      try {
+        const bounds = this.mainWindow.getBounds();
+        return screen.getDisplayMatching(bounds);
+      } catch (_) {}
     }
+    return screen.getPrimaryDisplay();
+  }
+
+  getPhysicalMonitorBounds() {
+    const display = this.getTargetDisplay();
+    if (screen.dipToScreenRect) {
+      try {
+        const physRect = screen.dipToScreenRect(null, display.bounds);
+        return {
+          left: physRect.x,
+          top: physRect.y,
+          right: physRect.x + physRect.width,
+          bottom: physRect.y + physRect.height,
+          scaleFactor: display.scaleFactor || 1,
+        };
+      } catch (_) {}
+    }
+
+    if (GetMonitorInfoW && this.hwnd) {
+      try {
+        const hMon = MonitorFromWindow(this.hwnd, 1 /* MONITOR_DEFAULTTOPRIMARY */);
+        const mi = { cbSize: koffi.sizeof(MONITORINFO) };
+        const ok = GetMonitorInfoW(hMon, mi);
+        if (ok && mi.rcMonitor.right > mi.rcMonitor.left) {
+          return {
+            left: mi.rcMonitor.left,
+            top: mi.rcMonitor.top,
+            right: mi.rcMonitor.right,
+            bottom: mi.rcMonitor.bottom,
+            scaleFactor: display.scaleFactor || 1,
+          };
+        }
+      } catch (e) {
+        this.logger("Error reading monitor info:", e);
+      }
+    }
+
+    const scale = display.scaleFactor || 1;
+    return {
+      left: Math.round(display.bounds.x * scale),
+      top: Math.round(display.bounds.y * scale),
+      right: Math.round((display.bounds.x + display.bounds.width) * scale),
+      bottom: Math.round((display.bounds.y + display.bounds.height) * scale),
+      scaleFactor: scale,
+    };
+  }
+
+  getPhysicalStripHeight() {
+    const display = this.getTargetDisplay();
+    const scale = display.scaleFactor || 1;
+    return Math.round(this.getEffectiveStripHeight() * scale);
+  }
+
+  getDIPStripHeight() {
+    const display = this.getTargetDisplay();
+    const scale = display.scaleFactor || 1;
+    return this.getPhysicalStripHeight() / scale;
+  }
+
+  positionWindowToMonitorTop() {
+    if (!this.mainWindow || this.mainWindow.isDestroyed() || !this.hwnd) return;
+    if (this.isUpdatingPos) return;
 
     try {
-      const hMon = MonitorFromWindow(this.hwnd, 1 /* MONITOR_DEFAULTTOPRIMARY */);
-      const mi = { cbSize: koffi.sizeof(MONITORINFO) };
-      const ok = GetMonitorInfoW(hMon, mi);
-      if (ok && mi.rcMonitor.right > mi.rcMonitor.left) {
-        return {
-          left: mi.rcMonitor.left,
-          top: mi.rcMonitor.top,
-          right: mi.rcMonitor.right,
-          bottom: mi.rcMonitor.bottom,
-          scaleFactor: 1, // Monitor info coordinates are in native virtual desktop pixels
-        };
-      }
-    } catch (e) {
-      this.logger("Error reading monitor info:", e);
-    }
+      this.isUpdatingPos = true;
+      const display = this.getTargetDisplay();
+      const dipBounds = display.bounds;
+      const physBounds = this.getPhysicalMonitorBounds();
 
-    const display = screen.getPrimaryDisplay();
-    return {
-      left: display.bounds.x,
-      top: display.bounds.y,
-      right: display.bounds.x + display.bounds.width,
-      bottom: display.bounds.y + display.bounds.height,
-      scaleFactor: display.scaleFactor || 1,
-    };
+      // Win32 physical positioning: pin window at top = 0 of monitor
+      if (SetWindowPos) {
+        SetWindowPos(
+          this.hwnd,
+          0,
+          physBounds.left,
+          physBounds.top,
+          physBounds.right - physBounds.left,
+          physBounds.bottom - physBounds.top,
+          0x0004 | 0x0010 | 0x0400 /* SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING */
+        );
+      }
+
+      // Electron DIP positioning
+      this.mainWindow.setBounds({
+        x: dipBounds.x,
+        y: dipBounds.y,
+        width: dipBounds.width,
+        height: dipBounds.height,
+      });
+    } catch (e) {
+      this.logger("Failed to position window to monitor top:", e);
+    } finally {
+      setTimeout(() => {
+        this.isUpdatingPos = false;
+      }, 40);
+    }
   }
 
   captureOriginalWorkArea() {
@@ -292,9 +373,9 @@ class AppBarService {
     if (!SystemParametersInfoW || !this.originalWorkArea) return;
 
     try {
-      const height = this.getEffectiveStripHeight();
-      const bounds = this.getMonitorBounds();
-      const targetTop = bounds.top + height;
+      const physHeight = this.getPhysicalStripHeight();
+      const bounds = this.getPhysicalMonitorBounds();
+      const targetTop = bounds.top + physHeight;
 
       const newRc = {
         left: this.originalWorkArea.left,
@@ -311,6 +392,12 @@ class AppBarService {
       );
       this.isWorkAreaModified = true;
       this.logger(`Windows work area adjusted (top=${newRc.top}): applications start below bar, res=${ok}`);
+
+      // Lock window back to monitor top edge immediately and on subsequent ticks
+      this.positionWindowToMonitorTop();
+      setTimeout(() => this.positionWindowToMonitorTop(), 40);
+      setTimeout(() => this.positionWindowToMonitorTop(), 120);
+      setTimeout(() => this.positionWindowToMonitorTop(), 250);
     } catch (e) {
       this.logger("Failed to apply work area:", e);
     }
@@ -328,6 +415,7 @@ class AppBarService {
       );
       this.isWorkAreaModified = false;
       this.logger(`Restored original Windows work area, res=${ok}`);
+      this.positionWindowToMonitorTop();
     } catch (e) {
       this.logger("Failed to restore original work area:", e);
     }
@@ -363,8 +451,9 @@ class AppBarService {
     if (!this.hwnd) return;
 
     try {
-      const bounds = this.getMonitorBounds();
-      const height = this.getEffectiveStripHeight();
+      const physBounds = this.getPhysicalMonitorBounds();
+      const physHeight = this.getPhysicalStripHeight();
+      const dipHeight = this.getDIPStripHeight();
 
       if (SHAppBarMessage && this.isRegistered) {
         const abd = {
@@ -373,23 +462,31 @@ class AppBarService {
           uCallbackMessage: WM_APPBAR_CALLBACK,
           uEdge: ABE_TOP,
           rc: {
-            left: bounds.left,
-            top: bounds.top,
-            right: bounds.right,
-            bottom: bounds.top + height,
+            left: physBounds.left,
+            top: physBounds.top,
+            right: physBounds.right,
+            bottom: physBounds.top + physHeight,
           },
           lParam: 0,
         };
 
         SHAppBarMessage(ABM_QUERYPOS, abd);
-        abd.rc.top = bounds.top;
-        abd.rc.bottom = bounds.top + height;
+        abd.rc.top = physBounds.top;
+        abd.rc.bottom = physBounds.top + physHeight;
         const setRes = SHAppBarMessage(ABM_SETPOS, abd);
         this.logger(`AppBar position updated (ABM_SETPOS) [${abd.rc.left}, ${abd.rc.top}, ${abd.rc.right}, ${abd.rc.bottom}], res:`, setRes);
       }
 
       // Constrain all Windows applications so they can only run below the bar
       this.applyReservedWorkArea();
+
+      // Broadcast unified DIP strip height to renderer
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send("menubar:config-changed", {
+          stripHeight: dipHeight,
+          stripMargin: this.stripMargin,
+        });
+      }
     } catch (e) {
       this.logger("Failed to update AppBar position:", e);
     }
@@ -456,7 +553,7 @@ class AppBarService {
     }
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send("menubar:config-changed", {
-        stripHeight: this.stripHeight,
+        stripHeight: this.getDIPStripHeight(),
         stripMargin: this.stripMargin,
       });
     }
@@ -470,7 +567,7 @@ class AppBarService {
     }
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send("menubar:config-changed", {
-        stripHeight: this.stripHeight,
+        stripHeight: this.getDIPStripHeight(),
         stripMargin: this.stripMargin,
       });
     }

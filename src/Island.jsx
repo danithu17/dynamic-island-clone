@@ -473,6 +473,11 @@ export default function Island() {
   } else if (isPlaying) {
     width = 150;
     height = stripHeight;
+  } else if (islandMode === "reserved") {
+    // In reserved mode, the menu bar displays clock and battery on the right.
+    // The notch idle pill is clean, minimal, flush with the top edge.
+    width = 76;
+    height = stripHeight;
   }
 
   return (
@@ -601,37 +606,55 @@ export default function Island() {
               height: "100%",
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              padding: "0 12px",
+              justifyContent: isPlaying ? "space-between" : (islandMode === "reserved" ? "center" : "space-between"),
+              padding: isPlaying ? "0 12px" : (islandMode === "reserved" ? "0 8px" : "0 12px"),
               boxSizing: "border-box",
               fontSize: 11.5,
               fontWeight: 600,
               fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
             }}
           >
-            {/* Left: Clock */}
-            <span style={{ letterSpacing: "-0.2px" }}>{currentTime}</span>
-
-            {/* Right: Music Indicator or Battery */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              {isPlaying ? (
+            {isPlaying ? (
+              <>
                 <div style={{ display: "flex", alignItems: "center", gap: 3, color: "#30d158" }}>
                   <Music size={12} />
-                  <span style={{ fontSize: 10, maxWidth: 45, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 10, maxWidth: 55, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {mediaTrack?.title || "Playing"}
                   </span>
                 </div>
-              ) : (
-                <div style={{ display: "flex", alignItems: "center", gap: 3, opacity: 0.8 }}>
-                  {batteryInfo.charging ? (
-                    <Zap size={12} color="#30d158" />
-                  ) : (
-                    <Battery size={12} color={batteryInfo.percent <= 20 ? "#ff453a" : "#ffffff"} />
-                  )}
-                  <span style={{ fontSize: 10.5 }}>{batteryInfo.percent}%</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <span style={{ width: 3, height: 7, background: "#30d158", borderRadius: 1 }} />
+                  <span style={{ width: 3, height: 11, background: "#30d158", borderRadius: 1 }} />
+                  <span style={{ width: 3, height: 5, background: "#30d158", borderRadius: 1 }} />
                 </div>
-              )}
-            </div>
+              </>
+            ) : islandMode === "reserved" ? (
+              /* Minimal notch sensor pill in reserved mode: NO duplicate clock, NO duplicate battery */
+              <div
+                style={{
+                  width: 22,
+                  height: 3.5,
+                  borderRadius: 2,
+                  backgroundColor: "rgba(255, 255, 255, 0.16)",
+                  boxShadow: "0 0 1px rgba(255, 255, 255, 0.2)",
+                }}
+              />
+            ) : (
+              /* Overlay mode: show clock on left and battery on right */
+              <>
+                <span style={{ letterSpacing: "-0.2px" }}>{currentTime}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 3, opacity: 0.8 }}>
+                    {batteryInfo.charging ? (
+                      <Zap size={12} color="#30d158" />
+                    ) : (
+                      <Battery size={12} color={batteryInfo.percent <= 20 ? "#ff453a" : "#ffffff"} />
+                    )}
+                    <span style={{ fontSize: 10.5 }}>{batteryInfo.percent}%</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 

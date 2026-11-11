@@ -85,6 +85,26 @@ test("MenuBar Components: exist and are free of Apple trademarks", () => {
   }
 });
 
+test("AppBarService: physical strip height and DIP conversions match", () => {
+  const service = new AppBarService();
+  service.stripHeight = 34;
+  service.stripMargin = 0;
+
+  // Mock getTargetDisplay returning scaleFactor 1.25
+  service.getTargetDisplay = () => ({
+    bounds: { x: 0, y: 0, width: 1536, height: 864 },
+    scaleFactor: 1.25,
+  });
+
+  const physHeight = service.getPhysicalStripHeight();
+  const dipHeight = service.getDIPStripHeight();
+
+  assert.strictEqual(physHeight, Math.round(34 * 1.25)); // 43 or 42
+  assert.strictEqual(dipHeight, physHeight / 1.25);
+  // DIP height times scaleFactor must exactly equal physical height
+  assert.strictEqual(Math.round(dipHeight * 1.25), physHeight);
+});
+
 test("AboutCredits: lists koffi and MIT license acknowledgement", () => {
   const aboutPath = path.join(__dirname, "../src/components/AboutCredits.jsx");
   const content = fs.readFileSync(aboutPath, "utf8");

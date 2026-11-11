@@ -756,6 +756,7 @@ ipcMain.handle("log-renderer-error", (event, errorData) => {
 ipcMain.handle("menubar:get-config", () => {
   return {
     ...loadMenuBarSettings(),
+    stripHeight: appBarService.getDIPStripHeight ? appBarService.getDIPStripHeight() : (appBarService.stripHeight || 34),
     isRegistered: appBarService.isRegistered,
     currentMode: appBarService.mode,
     activeApp: appBarService.getActiveApp(),
@@ -1091,14 +1092,17 @@ app.whenReady().then(() => {
   // Monitor resolution or display addition
   screen.on("display-metrics-changed", () => {
     ensureAlwaysOnTop();
+    appBarService.positionWindowToMonitorTop?.();
     appBarService.debouncedUpdatePos();
   });
   screen.on("display-added", () => {
     ensureAlwaysOnTop();
+    appBarService.positionWindowToMonitorTop?.();
     appBarService.debouncedUpdatePos();
   });
   screen.on("display-removed", () => {
     ensureAlwaysOnTop();
+    appBarService.positionWindowToMonitorTop?.();
     appBarService.debouncedUpdatePos();
   });
 
