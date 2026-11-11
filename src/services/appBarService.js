@@ -68,6 +68,11 @@ let CloseHandle = null;
 let QueryFullProcessImageNameW = null;
 let SystemParametersInfoW = null;
 let SetWindowPos = null;
+let KBDLLHOOKSTRUCT = null;
+let HOOKPROC = null;
+let SetWindowsHookExW = null;
+let UnhookWindowsHookEx = null;
+let CallNextHookEx = null;
 
 const SPI_GETWORKAREA = 0x0030;
 const SPI_SETWORKAREA = 0x002F;
@@ -117,6 +122,20 @@ if (koffi && process.platform === "win32") {
     OpenProcess = kernel32.func("uintptr_t __stdcall OpenProcess(uint32 dwDesiredAccess, int bInheritHandle, uint32 dwProcessId)");
     CloseHandle = kernel32.func("int __stdcall CloseHandle(uintptr_t hObject)");
     QueryFullProcessImageNameW = kernel32.func("int __stdcall QueryFullProcessImageNameW(uintptr_t hProcess, uint32 dwFlags, _Out_ uint16 *lpExeName, _Inout_ uint32 *lpdwSize)");
+
+    // Low-level Keyboard Hook for Hardware Media/Volume Keys
+    KBDLLHOOKSTRUCT = koffi.struct("APPBAR_KBDLLHOOKSTRUCT", {
+      vkCode: "uint32",
+      scanCode: "uint32",
+      flags: "uint32",
+      time: "uint32",
+      dwExtraInfo: "uintptr_t",
+    });
+
+    HOOKPROC = koffi.proto("intptr_t __stdcall HOOKPROC(int nCode, uintptr_t wParam, intptr_t lParam)");
+    SetWindowsHookExW = user32.func("uintptr_t __stdcall SetWindowsHookExW(int idHook, HOOKPROC *lpfn, uintptr_t hmod, uint32 dwThreadId)");
+    UnhookWindowsHookEx = user32.func("int __stdcall UnhookWindowsHookEx(uintptr_t hhk)");
+    CallNextHookEx = user32.func("intptr_t __stdcall CallNextHookEx(uintptr_t hhk, int nCode, uintptr_t wParam, intptr_t lParam)");
   } catch (err) {
     console.error("Error setting up Win32 bindings with koffi:", err);
   }
@@ -134,6 +153,7 @@ class AppBarService {
     this.stripHeight = 34; // default height in px
     this.stripMargin = 0; // margin in px
     this.fullscreenBehavior = "hide"; // "hide" | "collapse"
+    this.displayScope = "primary"; // "primary" | "all"
     this.targetDisplayId = null;
     this.isFullscreenActive = false;
     this.logger = console.log;
@@ -150,6 +170,8 @@ class AppBarService {
     // Hook references
     this.winEventHook = 0;
     this.winEventCallback = null;
+    this.keyboardHook = 0;
+    this.keyboardCallback = null;
     this.foregroundPollInterval = null;
     this.fullscreenWatchdogInterval = null;
 
@@ -240,6 +262,9 @@ class AppBarService {
     // Start Fullscreen Watchdog (catches F11 browser fullscreen, games, and video)
     this.startFullscreenWatchdog();
 
+    // Start Low-level Keyboard Watcher for Hardware Volume & Media Keys
+    this.startKeyboardWatcher();
+
     // Register exit/crash cleanup handlers
     this.registerCleanupHandlers();
   }
@@ -249,6 +274,12 @@ class AppBarService {
   }
 
   getTargetDisplay() {
+    if (this.targetDisplayId && screen.getAllDisplays) {
+      try {
+        const matched = screen.getAllDisplays().find((d) => String(d.id) === String(this.targetDisplayId));
+        if (matched) return matched;
+      } catch (_) {}
+    }
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       try {
         const bounds = this.mainWindow.getBounds();
@@ -573,6 +604,26 @@ class AppBarService {
     }
   }
 
+  setDisplayScope(scope) {
+    if (["primary", "all"].includes(scope)) {
+      this.displayScope = scope;
+      this.logger("Menu bar display scope set to:", scope);
+      if (this.mode === "reserved") {
+        this.positionWindowToMonitorTop();
+        this.updateAppBarPos();
+      }
+    }
+  }
+
+  setTargetDisplay(displayId) {
+    this.targetDisplayId = displayId;
+    this.logger("Target display ID set to:", displayId);
+    this.positionWindowToMonitorTop();
+    if (this.mode === "reserved") {
+      this.updateAppBarPos();
+    }
+  }
+
   // --- Fullscreen Handling ---
   handleFullscreenState(isFullscreen) {
     if (this.isFullscreenActive === isFullscreen) return;
@@ -743,6 +794,55 @@ class AppBarService {
     }
   }
 
+  startKeyboardWatcher() {
+    if (!SetWindowsHookExW || !koffi) return;
+
+    try {
+      this.keyboardCallback = koffi.register((nCode, wParam, lParam) => {
+        if (nCode >= 0 && (wParam === 0x0100 || wParam === 0x0104)) {
+          try {
+            const kbd = koffi.decode(lParam, KBDLLHOOKSTRUCT);
+            if (kbd) {
+              const vk = kbd.vkCode;
+              if (vk === 0xAF) {
+                this.notifyKeyboardControl("volup");
+              } else if (vk === 0xAE) {
+                this.notifyKeyboardControl("voldown");
+              } else if (vk === 0xAD) {
+                this.notifyKeyboardControl("mute");
+              } else if (vk === 0xCD) {
+                this.notifyKeyboardControl("playpause");
+              } else if (vk === 0xB0) {
+                this.notifyKeyboardControl("next");
+              } else if (vk === 0xB1) {
+                this.notifyKeyboardControl("previous");
+              }
+            }
+          } catch (_) {}
+        }
+        return CallNextHookEx(this.keyboardHook, nCode, wParam, lParam);
+      }, koffi.pointer(HOOKPROC));
+
+      this.keyboardHook = SetWindowsHookExW(13 /* WH_KEYBOARD_LL */, this.keyboardCallback, 0, 0);
+      this.logger("Keyboard control buttons watcher established:", this.keyboardHook);
+    } catch (e) {
+      this.logger("Failed to establish keyboard control watcher:", e);
+    }
+  }
+
+  notifyKeyboardControl(action) {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      try {
+        if (["volup", "voldown", "mute"].includes(action)) {
+          this.mainWindow.webContents.send("alert:volume-change", { action });
+          this.mainWindow.webContents.send("menubar:volume-change", { action });
+        } else if (["playpause", "next", "previous"].includes(action)) {
+          this.mainWindow.webContents.send("menubar:media-change", { command: action });
+        }
+      } catch (_) {}
+    }
+  }
+
   emitActiveApp(appData) {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send("menubar:active-app-changed", appData);
@@ -778,6 +878,20 @@ class AppBarService {
   }
 
   destroy() {
+    // Unhook Keyboard hook
+    if (this.keyboardHook && UnhookWindowsHookEx) {
+      try {
+        UnhookWindowsHookEx(this.keyboardHook);
+      } catch (_) {}
+      this.keyboardHook = 0;
+    }
+    if (this.keyboardCallback && koffi) {
+      try {
+        koffi.unregister(this.keyboardCallback);
+      } catch (_) {}
+      this.keyboardCallback = null;
+    }
+
     // Clear intervals
     if (this.foregroundPollInterval) {
       clearInterval(this.foregroundPollInterval);

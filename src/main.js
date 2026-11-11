@@ -455,8 +455,23 @@ const DEFAULT_MENUBAR_SETTINGS = {
   stripHeight: 34,
   stripMargin: 0,
   fullscreenBehavior: "hide",
-  menuBarBackground: "acrylic",
+  menuBarBackground: "acrylic", // "acrylic" | "black" | "darkgray"
   clockFormat: "standard",
+  displayScope: "primary", // "primary" | "all"
+  items: {
+    activeApp: true,
+    launcher: true,
+    shelf: true,
+    notes: true,
+    clipboard: true,
+    statusChips: true,
+    battery: true,
+    volume: true,
+    bluetooth: true,
+    wifi: true,
+    controlCenter: true,
+    clock: true,
+  },
 };
 
 function loadMenuBarSettings() {
@@ -471,6 +486,12 @@ function loadMenuBarSettings() {
         stripHeight: typeof data.stripHeight === "number" ? data.stripHeight : (typeof data.menuBar?.stripHeight === "number" ? data.menuBar.stripHeight : DEFAULT_MENUBAR_SETTINGS.stripHeight),
         stripMargin: typeof data.stripMargin === "number" ? data.stripMargin : (typeof data.menuBar?.stripMargin === "number" ? data.menuBar.stripMargin : DEFAULT_MENUBAR_SETTINGS.stripMargin),
         fullscreenBehavior: data.fullscreenBehavior || data.menuBar?.fullscreenBehavior || DEFAULT_MENUBAR_SETTINGS.fullscreenBehavior,
+        menuBarBackground: data.menuBarBackground || data.menuBar?.menuBarBackground || DEFAULT_MENUBAR_SETTINGS.menuBarBackground,
+        displayScope: data.displayScope || data.menuBar?.displayScope || DEFAULT_MENUBAR_SETTINGS.displayScope,
+        items: {
+          ...DEFAULT_MENUBAR_SETTINGS.items,
+          ...(data.menuBar?.items || {}),
+        },
       };
     }
   } catch (_) {}
@@ -489,6 +510,9 @@ function saveMenuBarSettings(partial) {
     if (typeof partial.stripHeight === "number") data.stripHeight = partial.stripHeight;
     if (typeof partial.stripMargin === "number") data.stripMargin = partial.stripMargin;
     if (partial.fullscreenBehavior) data.fullscreenBehavior = partial.fullscreenBehavior;
+    if (partial.menuBarBackground) data.menuBarBackground = partial.menuBarBackground;
+    if (partial.displayScope) data.displayScope = partial.displayScope;
+    if (partial.items) data.menuBar.items = { ...(data.menuBar.items || {}), ...partial.items };
     fs.writeFileSync(p, JSON.stringify(data, null, 2), "utf8");
   } catch (_) {}
 }
@@ -800,6 +824,42 @@ ipcMain.handle("menubar:set-fullscreen-behavior", (event, behavior) => {
   return false;
 });
 
+ipcMain.handle("menubar:set-background", (event, background) => {
+  if (["acrylic", "black", "darkgray"].includes(background)) {
+    saveMenuBarSettings({ menuBarBackground: background });
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("menubar:config-changed", loadMenuBarSettings());
+    }
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle("menubar:set-items-visibility", (event, items) => {
+  if (items && typeof items === "object") {
+    saveMenuBarSettings({ items });
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("menubar:config-changed", loadMenuBarSettings());
+    }
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle("menubar:set-display-scope", (event, scope) => {
+  if (["primary", "all"].includes(scope)) {
+    saveMenuBarSettings({ displayScope: scope });
+    if (appBarService && appBarService.setDisplayScope) {
+      appBarService.setDisplayScope(scope);
+    }
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("menubar:config-changed", loadMenuBarSettings());
+    }
+    return true;
+  }
+  return false;
+});
+
 ipcMain.handle("menubar:release-reserved-space", () => {
   appBarService.removeAppBar();
   return true;
@@ -816,6 +876,12 @@ let lastClipboardText = "";
 function setupClipboardMonitor() {
   setInterval(() => {
     try {
+      const cfg = loadMenuBarSettings();
+      // Zero background overhead when Clipboard is disabled in Menu Bar items
+      if (cfg?.items && cfg.items.clipboard === false) {
+        return;
+      }
+
       const text = clipboard.readText();
       if (text && text.trim() && text !== lastClipboardText) {
         lastClipboardText = text;

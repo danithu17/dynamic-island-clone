@@ -65,6 +65,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setStripHeight: (height) => ipcRenderer.invoke("menubar:set-strip-height", height),
   setStripMargin: (margin) => ipcRenderer.invoke("menubar:set-strip-margin", margin),
   setFullscreenBehavior: (behavior) => ipcRenderer.invoke("menubar:set-fullscreen-behavior", behavior),
+  setMenuBarBackground: (bg) => ipcRenderer.invoke("menubar:set-background", bg),
+  setMenuItemsVisibility: (items) => ipcRenderer.invoke("menubar:set-items-visibility", items),
+  setMenuBarDisplayScope: (scope) => ipcRenderer.invoke("menubar:set-display-scope", scope),
   releaseReservedSpace: () => ipcRenderer.invoke("menubar:release-reserved-space"),
   getActiveApp: () => ipcRenderer.invoke("menubar:get-active-app"),
   onActiveAppChanged: (callback) => {
@@ -94,5 +97,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   launchApp: (appKey) => ipcRenderer.invoke("system:launch-app", appKey),
   quitApp: () => ipcRenderer.invoke("app:quit"),
   relaunchApp: () => ipcRenderer.invoke("app:relaunch"),
+  onKeyboardVolumeChange: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('menubar:volume-change', handler);
+    return () => ipcRenderer.removeListener('menubar:volume-change', handler);
+  },
+  onKeyboardMediaChange: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('menubar:media-change', handler);
+    return () => ipcRenderer.removeListener('menubar:media-change', handler);
+  },
   platform: 'win32'
 });

@@ -142,3 +142,39 @@ test("tasksStorage: manages calendar tasks and reminders", () => {
   storage.deleteTask(newTask.id);
   assert.strictEqual(storage.getTasks().some((t) => t.id === newTask.id), false);
 });
+
+test("OverflowMenu: component exists and exports default function", () => {
+  const overflowPath = path.join(__dirname, "../src/components/menubar/OverflowMenu.jsx");
+  assert.ok(fs.existsSync(overflowPath), "OverflowMenu.jsx must exist");
+  const content = fs.readFileSync(overflowPath, "utf8");
+  assert.match(content, /export default function OverflowMenu/);
+});
+
+test("AppBarService: display scope and target display selection", () => {
+  const service = new AppBarService();
+  assert.strictEqual(service.displayScope, "primary");
+
+  service.setDisplayScope("all");
+  assert.strictEqual(service.displayScope, "all");
+
+  service.setTargetDisplay("2");
+  assert.strictEqual(service.targetDisplayId, "2");
+});
+
+test("AppBarService: hardware keyboard control notification", () => {
+  const service = new AppBarService();
+  const sentMessages = [];
+  service.mainWindow = {
+    isDestroyed: () => false,
+    webContents: {
+      send: (channel, data) => sentMessages.push({ channel, data }),
+    },
+  };
+
+  service.notifyKeyboardControl("volup");
+  assert.ok(sentMessages.some((m) => m.channel === "menubar:volume-change" && m.data.action === "volup"));
+  assert.ok(sentMessages.some((m) => m.channel === "alert:volume-change" && m.data.action === "volup"));
+
+  service.notifyKeyboardControl("playpause");
+  assert.ok(sentMessages.some((m) => m.channel === "menubar:media-change" && m.data.command === "playpause"));
+});

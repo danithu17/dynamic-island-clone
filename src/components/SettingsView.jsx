@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { SlidersHorizontal, Bell, Info, Monitor } from "lucide-react";
+import { SlidersHorizontal, Bell, Info, Monitor, LayoutTemplate } from "lucide-react";
 import AboutCredits from "./AboutCredits";
 import { alertQueue } from "../services/alertQueue";
 
@@ -18,8 +18,25 @@ export default function SettingsView({
 
   // Menu Bar / AppBar Settings
   const [islandPosition, setIslandPosition] = useState("reserved"); // "reserved" | "overlay" | "autohide"
+  const [stripHeight, setStripHeight] = useState(34);
   const [stripMargin, setStripMargin] = useState(0);
   const [fullscreenBehavior, setFullscreenBehavior] = useState("hide"); // "hide" | "collapse"
+  const [menuBarBackground, setMenuBarBackground] = useState("acrylic"); // "acrylic" | "black" | "darkgray"
+  const [displayScope, setDisplayScope] = useState("primary"); // "primary" | "all"
+  const [menuItems, setMenuItems] = useState({
+    activeApp: true,
+    launcher: true,
+    shelf: true,
+    notes: true,
+    clipboard: true,
+    statusChips: true,
+    battery: true,
+    volume: true,
+    bluetooth: true,
+    wifi: true,
+    controlCenter: true,
+    clock: true,
+  });
 
   useEffect(() => {
     if (window.electronAPI?.getDisplays) {
@@ -37,8 +54,12 @@ export default function SettingsView({
       window.electronAPI.getMenuBarConfig().then((cfg) => {
         if (cfg) {
           if (cfg.islandPosition) setIslandPosition(cfg.islandPosition);
+          if (typeof cfg.stripHeight === "number") setStripHeight(cfg.stripHeight);
           if (typeof cfg.stripMargin === "number") setStripMargin(cfg.stripMargin);
           if (cfg.fullscreenBehavior) setFullscreenBehavior(cfg.fullscreenBehavior);
+          if (cfg.menuBarBackground) setMenuBarBackground(cfg.menuBarBackground);
+          if (cfg.displayScope) setDisplayScope(cfg.displayScope);
+          if (cfg.items) setMenuItems((prev) => ({ ...prev, ...cfg.items }));
         }
       });
     }
@@ -47,6 +68,12 @@ export default function SettingsView({
   const handleIslandPositionChange = (mode) => {
     setIslandPosition(mode);
     window.electronAPI?.setIslandMode?.(mode);
+  };
+
+  const handleStripHeightChange = (val) => {
+    const num = parseInt(val, 10) || 34;
+    setStripHeight(num);
+    window.electronAPI?.setStripHeight?.(num);
   };
 
   const handleStripMarginChange = (val) => {
@@ -58,6 +85,22 @@ export default function SettingsView({
   const handleFullscreenBehaviorChange = (behavior) => {
     setFullscreenBehavior(behavior);
     window.electronAPI?.setFullscreenBehavior?.(behavior);
+  };
+
+  const handleBackgroundChange = (bg) => {
+    setMenuBarBackground(bg);
+    window.electronAPI?.setMenuBarBackground?.(bg);
+  };
+
+  const handleDisplayScopeChange = (scope) => {
+    setDisplayScope(scope);
+    window.electronAPI?.setMenuBarDisplayScope?.(scope);
+  };
+
+  const handleMenuItemToggle = (key, val) => {
+    const updated = { ...menuItems, [key]: val };
+    setMenuItems(updated);
+    window.electronAPI?.setMenuItemsVisibility?.(updated);
   };
 
   const handleDisplayChange = (id) => {
@@ -87,7 +130,7 @@ export default function SettingsView({
         boxSizing: "border-box",
         userSelect: "none",
         color: textColor,
-        fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+        fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif',
       }}
     >
       {/* Sidebar */}
@@ -122,6 +165,27 @@ export default function SettingsView({
         >
           <SlidersHorizontal size={14} />
           General
+        </button>
+
+        <button
+          onClick={() => setActiveCategory("menubar")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: "none",
+            background: activeCategory === "menubar" ? "rgba(255, 255, 255, 0.14)" : "transparent",
+            color: activeCategory === "menubar" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+            fontSize: 11.5,
+            fontWeight: 600,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <LayoutTemplate size={14} />
+          Menu Bar
         </button>
 
         <button
@@ -201,7 +265,7 @@ export default function SettingsView({
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px" }}>General Preferences</span>
 
-            {/* Always on top row */}
+            {/* Always on top toggle */}
             <div
               style={{
                 display: "flex",
@@ -215,17 +279,17 @@ export default function SettingsView({
             >
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600 }}>Always on Top</div>
-                <div style={{ fontSize: 10, opacity: 0.6 }}>Keep Aura Island floating over other windows</div>
+                <div style={{ fontSize: 10, opacity: 0.6 }}>Keep the notch and bar above standard app windows</div>
               </div>
               <input
                 type="checkbox"
                 checked={alwaysOnTop}
-                onChange={(e) => onToggleAlwaysOnTop?.(e.target.checked)}
+                onChange={(e) => onToggleAlwaysOnTop && onToggleAlwaysOnTop(e.target.checked)}
                 style={{ cursor: "pointer", width: 16, height: 16 }}
               />
             </div>
 
-            {/* Run at Startup */}
+            {/* Auto Launch */}
             <div
               style={{
                 display: "flex",
@@ -248,45 +312,236 @@ export default function SettingsView({
                 style={{ cursor: "pointer", width: 16, height: 16 }}
               />
             </div>
+          </div>
+        )}
 
-            {/* Display / Monitor selector */}
-            {displays.length > 1 && (
-              <div
+        {/* Menu Bar Configuration */}
+        {activeCategory === "menubar" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px" }}>Menu Bar Settings</span>
+
+            {/* Background Style */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                padding: "10px 12px",
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: 10,
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Bar Appearance & Background</div>
+                <div style={{ fontSize: 10, opacity: 0.6 }}>Choose the visual style for the top menu bar</div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                {[
+                  { id: "acrylic", label: "Acrylic / Frosted Blur" },
+                  { id: "black", label: "Solid Black" },
+                  { id: "darkgray", label: "Solid Dark Gray" },
+                ].map((opt) => (
+                  <label key={opt.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 11.5 }}>
+                    <input
+                      type="radio"
+                      name="menuBarBg"
+                      value={opt.id}
+                      checked={menuBarBackground === opt.id}
+                      onChange={() => handleBackgroundChange(opt.id)}
+                    />
+                    <span>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Position Mode */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                padding: "10px 12px",
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: 10,
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Bar Mode</div>
+                <div style={{ fontSize: 10, opacity: 0.6 }}>How the top bar reserves space on your desktop</div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 11.5 }}>
+                  <input
+                    type="radio"
+                    name="islandPosMenuBar"
+                    value="reserved"
+                    checked={islandPosition === "reserved"}
+                    onChange={() => handleIslandPositionChange("reserved")}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Reserved strip (Default)</div>
+                    <div style={{ fontSize: 10, opacity: 0.65 }}>Windows AppBar registered; apps maximize strictly below the bar.</div>
+                  </div>
+                </label>
+
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 11.5 }}>
+                  <input
+                    type="radio"
+                    name="islandPosMenuBar"
+                    value="autohide"
+                    checked={islandPosition === "autohide"}
+                    onChange={() => handleIslandPositionChange("autohide")}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Auto-hide</div>
+                    <div style={{ fontSize: 10, opacity: 0.65 }}>No space reserved; slides away and reveals when cursor touches the top edge.</div>
+                  </div>
+                </label>
+
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: 11.5 }}>
+                  <input
+                    type="radio"
+                    name="islandPosMenuBar"
+                    value="overlay"
+                    checked={islandPosition === "overlay"}
+                    onChange={() => handleIslandPositionChange("overlay")}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Overlay</div>
+                    <div style={{ fontSize: 10, opacity: 0.65 }}>Floats freely over windows with click-through everywhere except active controls.</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Height & Margins */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 12px",
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: 10,
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Bar Strip Height</div>
+                <div style={{ fontSize: 10, opacity: 0.6 }}>Height of the menu bar strip (pixels)</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                  type="range"
+                  min="28"
+                  max="44"
+                  step="2"
+                  value={stripHeight}
+                  onChange={(e) => handleStripHeightChange(e.target.value)}
+                  style={{ width: 80, cursor: "pointer" }}
+                />
+                <span style={{ fontSize: 11, fontWeight: 600, minWidth: 28, textAlign: "right" }}>
+                  {stripHeight}px
+                </span>
+              </div>
+            </div>
+
+            {/* Multi-Monitor Scope */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 12px",
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: 10,
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Display Scope</div>
+                <div style={{ fontSize: 10, opacity: 0.6 }}>Show menu bar across displays (notch remains on chosen monitor)</div>
+              </div>
+              <select
+                value={displayScope}
+                onChange={(e) => handleDisplayScopeChange(e.target.value)}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "8px 12px",
-                  background: "rgba(255, 255, 255, 0.05)",
-                  borderRadius: 10,
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  background: "rgba(0, 0, 0, 0.6)",
+                  border: "1px solid rgba(255, 255, 255, 0.16)",
+                  borderRadius: 6,
+                  color: "#ffffff",
+                  fontSize: 11,
+                  padding: "3px 8px",
                 }}
               >
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600 }}>Monitor Selection</div>
-                  <div style={{ fontSize: 10, opacity: 0.6 }}>Choose which screen displays the island</div>
-                </div>
-                <select
-                  value={selectedDisplay}
-                  onChange={(e) => handleDisplayChange(e.target.value)}
-                  style={{
-                    background: "rgba(0, 0, 0, 0.6)",
-                    border: "1px solid rgba(255, 255, 255, 0.16)",
-                    borderRadius: 6,
-                    color: "#ffffff",
-                    fontSize: 11,
-                    padding: "3px 8px",
-                  }}
-                >
-                  <option value="">Primary Display</option>
-                  {displays.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
+                <option value="primary">Primary Display Only</option>
+                <option value="all">All Monitors</option>
+              </select>
+            </div>
+
+            {/* Menu Bar Items Toggle Checklist */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: 10,
+                padding: "10px 12px",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Menu Bar Items</div>
+                <div style={{ fontSize: 10, opacity: 0.6 }}>Turn items on or off. Disabled items run zero background processes.</div>
               </div>
-            )}
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 14px", marginTop: 4 }}>
+                {[
+                  { key: "activeApp", label: "Active App Name & Icon" },
+                  { key: "launcher", label: "System Launcher" },
+                  { key: "shelf", label: "Drop Shelf" },
+                  { key: "notes", label: "Scratchpad Notes" },
+                  { key: "clipboard", label: "Clipboard History" },
+                  { key: "statusChips", label: "Live Status Chips (Timer, Media)" },
+                  { key: "battery", label: "Battery Status & Power" },
+                  { key: "volume", label: "Sound Volume" },
+                  { key: "bluetooth", label: "Bluetooth" },
+                  { key: "wifi", label: "Wi-Fi" },
+                  { key: "controlCenter", label: "Control Center" },
+                  { key: "clock", label: "Clock & Calendar" },
+                ].map((item) => (
+                  <label
+                    key={item.key}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      fontSize: 11,
+                      cursor: "pointer",
+                      padding: "3px 0",
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
+                    }}
+                  >
+                    <span>{item.label}</span>
+                    <input
+                      type="checkbox"
+                      checked={menuItems[item.key] !== false}
+                      onChange={(e) => handleMenuItemToggle(item.key, e.target.checked)}
+                      style={{ cursor: "pointer", width: 14, height: 14 }}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
