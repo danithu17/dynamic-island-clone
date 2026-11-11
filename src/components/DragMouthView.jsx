@@ -99,7 +99,9 @@ export default function DragMouthView({ onDropItem, onCancel }) {
         padding: "6px 12px 10px 12px",
         boxSizing: "border-box",
         userSelect: "none",
-        fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+        fontFamily: '"Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif',
+        WebkitFontSmoothing: "antialiased",
+        textRendering: "optimizeLegibility",
       }}
       onDragOver={(e) => {
         e.preventDefault();

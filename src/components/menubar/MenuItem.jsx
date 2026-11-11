@@ -1,4 +1,5 @@
 import React from "react";
+import designTokens from "../../styles/designTokens";
 
 export default function MenuItem({
   id,
@@ -19,30 +20,29 @@ export default function MenuItem({
         display: "inline-flex",
         alignItems: "center",
         gap: 5,
-        padding: "3px 8px",
-        borderRadius: 6,
+        padding: "3px 8.5px",
+        borderRadius: designTokens.radii.menuItem,
         cursor: "pointer",
-        transition: "all 0.12s ease",
+        transition: "background 0.1s ease, color 0.1s ease",
         userSelect: "none",
-        background: isOpen
-          ? "rgba(255, 255, 255, 0.22)"
-          : "transparent",
-        color: isOpen ? "#ffffff" : "rgba(255, 255, 255, 0.88)",
-        fontSize: 13,
-        fontWeight: 500,
-        letterSpacing: "-0.15px",
+        fontFamily: designTokens.typography.fontFamily,
+        fontSize: designTokens.typography.sizeBarItem,
+        fontWeight: isOpen ? designTokens.typography.weightSemibold : designTokens.typography.weightMedium,
+        background: isOpen ? designTokens.colors.itemActive : "transparent",
+        color: isOpen ? "#ffffff" : designTokens.colors.textSecondary,
+        letterSpacing: designTokens.typography.letterSpacing,
         whiteSpace: "nowrap",
       }}
       onMouseOver={(e) => {
         if (!isOpen) {
-          e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
+          e.currentTarget.style.background = designTokens.colors.itemHover;
           e.currentTarget.style.color = "#ffffff";
         }
       }}
       onMouseOut={(e) => {
         if (!isOpen) {
           e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.color = "rgba(255, 255, 255, 0.88)";
+          e.currentTarget.style.color = designTokens.colors.textSecondary;
         }
       }}
     >

@@ -181,7 +181,9 @@ export default function QuickToggles({ textColor = "#ffffff" }) {
         background: "rgba(255, 255, 255, 0.03)",
         borderTop: "1px solid rgba(255, 255, 255, 0.08)",
         userSelect: "none",
-        fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+        fontFamily: '"Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif',
+        WebkitFontSmoothing: "antialiased",
+        textRendering: "optimizeLegibility",
       }}
     >
       {toggles.map((item) => {
@@ -191,8 +193,8 @@ export default function QuickToggles({ textColor = "#ffffff" }) {
         return (
           <motion.button
             key={item.id}
-            whileHover={{ scale: 1.05, backgroundColor: isActive ? `color-mix(in srgb, ${item.activeColor} 30%, transparent)` : "rgba(255, 255, 255, 0.12)" }}
-            whileTap={{ scale: 0.92 }}
+            whileHover={{ y: -1, backgroundColor: isActive ? `color-mix(in srgb, ${item.activeColor} 30%, transparent)` : "rgba(255, 255, 255, 0.12)" }}
+            whileTap={{ y: 1 }}
             onClick={(e) => {
               e.stopPropagation();
               item.onClick();

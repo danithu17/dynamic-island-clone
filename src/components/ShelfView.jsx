@@ -86,7 +86,9 @@ export default function ShelfView({ onClose }) {
         padding: "4px 14px 10px 14px",
         boxSizing: "border-box",
         userSelect: "none",
-        fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+        fontFamily: '"Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif',
+        WebkitFontSmoothing: "antialiased",
+        textRendering: "optimizeLegibility",
       }}
     >
       {/* Subheader Toolbar */}

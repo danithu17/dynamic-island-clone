@@ -31,7 +31,9 @@ export default function MediaControls({ track, onPlayPause, onNext, onPrev, text
         boxSizing: "border-box",
         userSelect: "none",
         color: textColor,
-        fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+        fontFamily: '"Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif',
+        WebkitFontSmoothing: "antialiased",
+        textRendering: "optimizeLegibility",
       }}
     >
       {/* Album Artwork */}

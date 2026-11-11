@@ -75,6 +75,7 @@ test("MenuBar Components: exist and are free of Apple trademarks", () => {
     "ClockDropdown.jsx",
     "ClockPanel.jsx",
     "BatteryDropdown.jsx",
+    "AppMenus.jsx",
   ];
 
   for (const file of requiredFiles) {
@@ -85,6 +86,21 @@ test("MenuBar Components: exist and are free of Apple trademarks", () => {
     assert.doesNotMatch(content, /sf pro/i, `${file} should not reference proprietary SF Pro`);
     assert.doesNotMatch(content, /sf symbols/i, `${file} should not reference proprietary SF Symbols`);
   }
+});
+
+test("DesignTokens & UI Sharpness: tokens file exists with required themes and snapToPhysicalPixels", () => {
+  const tokensPath = path.join(__dirname, "../src/styles/designTokens.js");
+  assert.ok(fs.existsSync(tokensPath), "designTokens.js should exist");
+  const { designTokens, snapToPhysicalPixels } = require("../src/styles/designTokens");
+
+  assert.ok(designTokens.colors, "designTokens must have colors");
+  assert.ok(designTokens.typography, "designTokens must have typography");
+  assert.ok(designTokens.radii, "designTokens must have radii");
+  assert.strictEqual(typeof snapToPhysicalPixels, "function");
+
+  // Verify snapToPhysicalPixels at 125% and 150% scaling
+  assert.strictEqual(snapToPhysicalPixels(33.6, 1.25), 33.6);
+  assert.strictEqual(snapToPhysicalPixels(10, 1.5), 10);
 });
 
 test("AppBarService: physical strip height and DIP conversions match", () => {

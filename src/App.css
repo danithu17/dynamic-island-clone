@@ -6,7 +6,9 @@ body {
   height: 100%;
   overflow: hidden;
   box-sizing: border-box;
-  font-family: "OpenRunde", Helvetica;
+  font-family: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   background: transparent;
   display: flex;
   flex-direction: column;

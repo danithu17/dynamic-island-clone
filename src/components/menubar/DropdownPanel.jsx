@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import designTokens, { snapToPhysicalPixels } from "../../styles/designTokens";
 
 export default function DropdownPanel({
   isOpen = false,
@@ -28,7 +29,7 @@ export default function DropdownPanel({
     const handleMouseDown = (e) => {
       if (panelRef.current && !panelRef.current.contains(e.target)) {
         // Also check if the click was on a menu item
-        const isMenuItemClick = e.target.closest?.("[id^='menu-item-']");
+        const isMenuItemClick = e.target.closest?.("[id^='menu-item-']") || e.target.closest?.("[id^='app-menu-']");
         if (!isMenuItemClick) {
           onClose?.();
         }
@@ -44,31 +45,38 @@ export default function DropdownPanel({
     };
   }, [isOpen, onClose]);
 
+  const snapTop = snapToPhysicalPixels(top);
+  const snapLeft = anchorLeft !== undefined ? snapToPhysicalPixels(anchorLeft) : undefined;
+  const snapRight = anchorRight !== undefined ? snapToPhysicalPixels(anchorRight) : undefined;
+
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           ref={panelRef}
-          initial={{ opacity: 0, scale: 0.95, y: -6 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: -4 }}
-          transition={{ type: "spring", stiffness: 460, damping: 30 }}
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ type: "spring", stiffness: 450, damping: 32 }}
           tabIndex={-1}
           style={{
             position: "fixed",
-            top: `${top}px`,
-            left: anchorLeft !== undefined ? `${anchorLeft}px` : "auto",
-            right: anchorRight !== undefined ? `${anchorRight}px` : "auto",
-            width: typeof width === "number" ? `${width}px` : width,
+            top: `${snapTop}px`,
+            left: snapLeft !== undefined ? `${snapLeft}px` : "auto",
+            right: snapRight !== undefined ? `${snapRight}px` : "auto",
+            width: typeof width === "number" ? `${snapToPhysicalPixels(width)}px` : width,
             maxHeight: `${maxHeight}px`,
-            borderRadius: 12,
-            background: "rgba(22, 22, 26, 0.92)",
-            backdropFilter: "blur(32px) saturate(190%)",
-            WebkitBackdropFilter: "blur(32px) saturate(190%)",
-            border: "1px solid rgba(255, 255, 255, 0.12)",
-            boxShadow: "0 18px 40px rgba(0, 0, 0, 0.55), 0 4px 14px rgba(0, 0, 0, 0.3)",
-            color: "#ffffff",
-            padding: "8px 6px",
+            borderRadius: designTokens.radii.panel,
+            background: "rgba(20, 21, 25, 0.96)",
+            backdropFilter: "blur(28px) saturate(180%)",
+            WebkitBackdropFilter: "blur(28px) saturate(180%)",
+            border: `1px solid ${designTokens.colors.panelBorder}`,
+            boxShadow: designTokens.shadows.panel,
+            color: designTokens.colors.textPrimary,
+            fontFamily: designTokens.typography.fontFamily,
+            WebkitFontSmoothing: "antialiased",
+            textRendering: "optimizeLegibility",
+            padding: "6px 4px",
             boxSizing: "border-box",
             zIndex: 999998,
             overflowY: "auto",

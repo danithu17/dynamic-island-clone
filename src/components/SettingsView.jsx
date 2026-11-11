@@ -131,7 +131,9 @@ export default function SettingsView({
         boxSizing: "border-box",
         userSelect: "none",
         color: textColor,
-        fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif',
+        fontFamily: '"Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif',
+        WebkitFontSmoothing: "antialiased",
+        textRendering: "optimizeLegibility",
       }}
     >
       {/* Sidebar */}

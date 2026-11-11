@@ -12,6 +12,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import MenuBar from "./components/menubar/MenuBar";
 import { alertQueue } from "./services/alertQueue";
 import { shelfStorage } from "./services/shelfStorage";
+import designTokens, { snapToPhysicalPixels } from "./styles/designTokens";
 
 export default function Island() {
   const [mode, setMode] = useState("still"); // "still" | "expanded" | "drag-mouth"
@@ -527,8 +528,8 @@ export default function Island() {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         animate={{
-          width: `${width}px`,
-          height: `${height}px`,
+          width: `${snapToPhysicalPixels(width)}px`,
+          height: `${snapToPhysicalPixels(height)}px`,
           backgroundColor: "#000000",
           borderBottomLeftRadius: isDragMouth ? 22 : isExpanded ? 26 : 16,
           borderBottomRightRadius: isDragMouth ? 22 : isExpanded ? 26 : 16,
@@ -556,6 +557,9 @@ export default function Island() {
           color: "#ffffff",
           display: "flex",
           flexDirection: "column",
+          fontFamily: designTokens.typography.fontFamily,
+          WebkitFontSmoothing: "antialiased",
+          textRendering: "optimizeLegibility",
         }}
       >
         {/* Concave upper notch ears merging with display bezel */}
@@ -612,7 +616,7 @@ export default function Island() {
               boxSizing: "border-box",
               fontSize: 11.5,
               fontWeight: 600,
-              fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+              fontFamily: designTokens.typography.fontFamily,
             }}
           >
             {isPlaying ? (

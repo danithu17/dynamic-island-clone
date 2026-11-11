@@ -31,6 +31,8 @@ import VolumeDropdown from "./VolumeDropdown";
 import ControlCenter from "./ControlCenter";
 import ClockPanel from "./ClockPanel";
 import BatteryDropdown from "./BatteryDropdown";
+import AppMenus, { AppMenuDropdownContent } from "./AppMenus";
+import designTokens, { snapToPhysicalPixels } from "../../styles/designTokens";
 
 export default function MenuBar({
   stripHeight = 34,
@@ -74,6 +76,26 @@ export default function MenuBar({
   // Active Menu state for macOS-style dropdown behavior
   const [activeMenu, setActiveMenu] = useState(null); // string id or null
   const [panelAnchor, setPanelAnchor] = useState({ left: undefined, right: undefined });
+  const [currentAppMenuData, setCurrentAppMenuData] = useState({ menus: [], hwnd: 0, layer: "generic" });
+
+  useEffect(() => {
+    if (!window.electronAPI?.onAppMenusChanged) return;
+    const unsub = window.electronAPI.onAppMenusChanged((data) => {
+      if (data && Array.isArray(data.menus)) {
+        setCurrentAppMenuData(data);
+      }
+    });
+
+    if (window.electronAPI?.getCurrentAppMenus) {
+      window.electronAPI.getCurrentAppMenus().then((data) => {
+        if (data && Array.isArray(data.menus)) {
+          setCurrentAppMenuData(data);
+        }
+      }).catch(() => {});
+    }
+
+    return () => unsub?.();
+  }, []);
 
   const isMouseOverBarRef = useRef(false);
   const autoHideTimeoutRef = useRef(null);
@@ -278,25 +300,25 @@ export default function MenuBar({
     switch (menuConfig.menuBarBackground) {
       case "black":
         return {
-          background: "#000000",
+          background: "#0d0e11",
           backdropFilter: "none",
           WebkitBackdropFilter: "none",
           borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
         };
       case "darkgray":
         return {
-          background: "#1c1c1e",
+          background: "#18191e",
           backdropFilter: "none",
           WebkitBackdropFilter: "none",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.10)",
         };
       case "acrylic":
       default:
         return {
-          background: "rgba(18, 18, 20, 0.75)",
+          background: "rgba(18, 19, 23, 0.94)",
           backdropFilter: "blur(28px) saturate(180%)",
           WebkitBackdropFilter: "blur(28px) saturate(180%)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.09)",
         };
     }
   };
@@ -360,7 +382,9 @@ export default function MenuBar({
           justifyContent: "space-between",
           padding: "0 8px",
           color: "#ffffff",
-          fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif',
+          fontFamily: designTokens.typography.fontFamily,
+          WebkitFontSmoothing: "antialiased",
+          textRendering: "optimizeLegibility",
           transform: isHiddenByAutoHide ? `translateY(-${stripHeight}px)` : "translateY(0)",
           transition: "transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, background 0.2s ease",
           opacity: isHiddenByAutoHide ? 0 : 1,
@@ -369,7 +393,7 @@ export default function MenuBar({
           ...getBackgroundStyle(),
         }}
       >
-        {/* LEFT ZONE: Aura Logo, Active App Name, Menu Items / Overflow */}
+        {/* LEFT ZONE: Aura Logo, Active App Name, Per-App Menus, System Items / Overflow */}
         <div
           style={{
             display: "flex",
@@ -397,6 +421,20 @@ export default function MenuBar({
               <ActiveAppName appData={activeApp} />
             </div>
           )}
+
+          {/* Per-App Menus (Part A) */}
+          <AppMenus
+            activeMenu={activeMenu}
+            onOpenMenu={(id, anchor) => {
+              setPanelAnchor(anchor);
+              setActiveMenu(id);
+            }}
+            onHoverMenu={(id, anchor) => {
+              setPanelAnchor(anchor);
+              setActiveMenu(id);
+            }}
+            onCloseMenu={() => setActiveMenu(null)}
+          />
 
           {visibleLeftItems.map((item) => (
             <MenuItem
@@ -679,6 +717,34 @@ export default function MenuBar({
           timerSecondsLeft={timerSecondsLeft}
         />
       </DropdownPanel>
+
+      {/* 13. Dynamic Per-App Menu Dropdown (Part A) */}
+      {activeMenu?.startsWith("app-menu-") && (
+        <DropdownPanel
+          isOpen={true}
+          onClose={() => setActiveMenu(null)}
+          anchorLeft={panelAnchor.left}
+          top={stripHeight + 4}
+          width={240}
+        >
+          <AppMenuDropdownContent
+            menuIndex={parseInt(activeMenu.replace("app-menu-", ""), 10)}
+            menus={currentAppMenuData.menus}
+            onExecute={(item) => {
+              if (window.electronAPI?.executeAppMenuItem) {
+                window.electronAPI.executeAppMenuItem({
+                  hwnd: currentAppMenuData.hwnd,
+                  path: item.path,
+                  cmdId: item.cmdId,
+                  action: item.action,
+                  layer: currentAppMenuData.layer,
+                });
+              }
+            }}
+            onClose={() => setActiveMenu(null)}
+          />
+        </DropdownPanel>
+      )}
     </>
   );
 }

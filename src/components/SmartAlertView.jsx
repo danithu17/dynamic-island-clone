@@ -73,7 +73,9 @@ export default function SmartAlertView({ alert, onClick }) {
         boxSizing: "border-box",
         cursor: alert.action ? "pointer" : "default",
         userSelect: "none",
-        fontFamily: 'OpenRunde, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+        fontFamily: '"Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif',
+        WebkitFontSmoothing: "antialiased",
+        textRendering: "optimizeLegibility",
       }}
     >
       {/* Left side: Icon badge + Title */}
