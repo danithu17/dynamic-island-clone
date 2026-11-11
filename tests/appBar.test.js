@@ -178,3 +178,17 @@ test("AppBarService: hardware keyboard control notification", () => {
   service.notifyKeyboardControl("playpause");
   assert.ok(sentMessages.some((m) => m.channel === "menubar:media-change" && m.data.command === "playpause"));
 });
+
+test("AppBarService: background efficiency & active app suppression when disabled", () => {
+  const service = new AppBarService();
+  assert.strictEqual(service.activeAppEnabled, true);
+
+  service.setActiveAppEnabled(false);
+  assert.strictEqual(service.activeAppEnabled, false);
+
+  // When disabled, lastForegroundHwnd resets and no polling work is conducted
+  assert.strictEqual(service.lastForegroundHwnd, 0);
+
+  service.setActiveAppEnabled(true);
+  assert.strictEqual(service.activeAppEnabled, true);
+});

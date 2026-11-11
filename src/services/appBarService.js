@@ -155,6 +155,7 @@ class AppBarService {
     this.fullscreenBehavior = "hide"; // "hide" | "collapse"
     this.displayScope = "primary"; // "primary" | "all"
     this.targetDisplayId = null;
+    this.activeAppEnabled = true;
     this.isFullscreenActive = false;
     this.logger = console.log;
 
@@ -703,11 +704,19 @@ class AppBarService {
     }, 1000);
   }
 
+  setActiveAppEnabled(enabled) {
+    this.activeAppEnabled = Boolean(enabled);
+    if (!this.activeAppEnabled) {
+      this.lastForegroundHwnd = 0;
+    }
+  }
+
   // --- Foreground Application Watcher (Safe Polling, Zero Crashing Hooks) ---
   startForegroundWatcher() {
     if (!GetForegroundWindow) return;
 
     const checkForeground = () => {
+      if (this.activeAppEnabled === false) return;
       try {
         const fgHwnd = GetForegroundWindow();
         if (!fgHwnd || fgHwnd === this.lastForegroundHwnd) return;

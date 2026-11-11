@@ -838,6 +838,9 @@ ipcMain.handle("menubar:set-background", (event, background) => {
 ipcMain.handle("menubar:set-items-visibility", (event, items) => {
   if (items && typeof items === "object") {
     saveMenuBarSettings({ items });
+    if (appBarService?.setActiveAppEnabled && typeof items.activeApp === "boolean") {
+      appBarService.setActiveAppEnabled(items.activeApp);
+    }
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("menubar:config-changed", loadMenuBarSettings());
     }
