@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   controlSystemMedia: (command, ...args) => ipcRenderer.invoke('control-system-media', command, ...args),
   controlSystemVolume: (action) => ipcRenderer.invoke('control-system-volume', action),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  restorePreviousFocus: () => ipcRenderer.invoke('restore-previous-focus'),
   getDisplays: () => ipcRenderer.invoke('get-displays'),
   setDisplay: (displayId) => ipcRenderer.invoke('set-display', displayId),
   updateWindowPosition: (xPerc, yPx) => ipcRenderer.invoke('update-window-position', xPerc, yPx),
@@ -138,6 +139,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (event, data) => callback(data);
     ipcRenderer.on('menubar:volume-change', handler);
     return () => ipcRenderer.removeListener('menubar:volume-change', handler);
+  },
+  onSystemResume: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on("system-resume", handler);
+    return () => ipcRenderer.removeListener("system-resume", handler);
+  },
+  onSystemSuspend: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on("system-suspend", handler);
+    return () => ipcRenderer.removeListener("system-suspend", handler);
+  },
+  onSystemLock: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on("system-lock", handler);
+    return () => ipcRenderer.removeListener("system-lock", handler);
+  },
+  onSystemUnlock: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on("system-unlock", handler);
+    return () => ipcRenderer.removeListener("system-unlock", handler);
+  },
+  onSystemThemeUpdated: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on("system-theme-updated", handler);
+    return () => ipcRenderer.removeListener("system-theme-updated", handler);
   },
   onKeyboardMediaChange: (callback) => {
     const handler = (event, data) => callback(data);

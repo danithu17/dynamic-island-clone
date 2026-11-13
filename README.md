@@ -16,6 +16,20 @@ https://github.com/user-attachments/assets/bd057d18-f65e-4cf4-bf66-a5d107f18658
 
 ---
 
+## Visual Tour
+
+| View | Screenshot | Description |
+| :--- | :---: | :--- |
+| **Idle Notch** | ![Idle Notch](screenshots/idle.png) | Sits flush at top of screen with razor-sharp fillets and physical pixel snapping. |
+| **Live Activity** | ![Live Activity](screenshots/live_activity.jpg) | High-fidelity music playback scrubber, album artwork, and timer countdowns. |
+| **Smart Alert** | ![Smart Alert](screenshots/alert.jpg) | Low-distraction alerts for volume, battery, downloads, and system events. |
+| **Home Dashboard** | ![Home Dashboard](screenshots/home.jpg) | Calendar overview, upcoming tasks, quick scratchpad, and weather. |
+| **Drop Panel (Shelf)** | ![Drop Panel](screenshots/drop_panel.jpg) | Swallow mouth expands when dragging files for staging, email, or sharing. |
+| **Settings Window** | ![Settings Window](screenshots/settings_window.png) | 15 macOS-style categories, instant search, and live configuration updates. |
+| **Guided Setup Scene** | ![Setup Scene](screenshots/setup_scene.jpg) | In-notch onboarding guiding through styles, hotkeys, and features. |
+
+---
+
 ## Highlights & Features
 
 ### 1. Dual Geometry & Personality

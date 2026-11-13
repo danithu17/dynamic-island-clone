@@ -654,7 +654,6 @@ export default function ControlCenter({ mediaTrack, onClose }) {
           <PowerOff size={11} color="#ff453a" /> Shut Down
         </button>
       </div>
-      </div>
     </div>
   );
 }

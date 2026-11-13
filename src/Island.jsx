@@ -375,14 +375,15 @@ export default function Island() {
     alertQueue.dismissByType("timer");
   };
 
-  // System Media polling
+  // System Media polling (paused on lock/suspend)
   useEffect(() => {
     let mounted = true;
+    let isPaused = false;
     const fetchMedia = async () => {
-      if (!window.electronAPI?.getSystemMedia) return;
+      if (!window.electronAPI?.getSystemMedia || isPaused) return;
       try {
         const track = await window.electronAPI.getSystemMedia();
-        if (mounted) {
+        if (mounted && !isPaused) {
           setMediaTrack(track);
         }
       } catch (_) {}
@@ -390,9 +391,29 @@ export default function Island() {
 
     fetchMedia();
     const interval = setInterval(fetchMedia, 2500);
+
+    const unsubSuspend = window.electronAPI?.onSystemSuspend?.(() => {
+      isPaused = true;
+    });
+    const unsubLock = window.electronAPI?.onSystemLock?.(() => {
+      isPaused = true;
+    });
+    const unsubResume = window.electronAPI?.onSystemResume?.(() => {
+      isPaused = false;
+      fetchMedia();
+    });
+    const unsubUnlock = window.electronAPI?.onSystemUnlock?.(() => {
+      isPaused = false;
+      fetchMedia();
+    });
+
     return () => {
       mounted = false;
       clearInterval(interval);
+      unsubSuspend?.();
+      unsubLock?.();
+      unsubResume?.();
+      unsubUnlock?.();
     };
   }, []);
 
@@ -607,6 +628,7 @@ export default function Island() {
         setActiveView("media");
         alertQueue.dismissCurrent();
         window.electronAPI?.setIgnoreMouseEvents?.(true, true);
+        window.electronAPI?.restorePreviousFocus?.();
       }
     };
 
@@ -706,6 +728,7 @@ export default function Island() {
       setMode("still");
       setActiveView("media");
       window.electronAPI?.setIgnoreMouseEvents?.(true, true);
+      window.electronAPI?.restorePreviousFocus?.();
     }, delay);
   }, [islandSettings.collapseDelay, startFrameTracking]);
 

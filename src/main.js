@@ -432,23 +432,91 @@ let tray = null;
 let mainWindow = null;
 let alwaysOnTopEnabled = true;
 
-// --- Logging System ---
-function getLogFilePath() {
+// --- Logging System with Rotation & Secret Redaction ---
+function getLogsDir() {
   try {
-    return path.join(app.getPath("userData"), "aura-island.log");
+    const dir = path.join(app.getPath("userData"), "logs");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    return dir;
   } catch (_) {
-    return path.join(process.cwd(), "aura-island.log");
+    const dir = path.join(process.cwd(), "logs");
+    try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
+    return dir;
   }
+}
+
+function getLogFilePath() {
+  return path.join(getLogsDir(), "aura-island.log");
+}
+
+function redactSecrets(text) {
+  if (typeof text !== "string") return text;
+  return text
+    .replace(/(?:api[_-]?key|secret|token|password|auth|bearer)\s*[:=]\s*['"]?[a-zA-Z0-9_\-\.]{8,}['"]?/gi, (match) => {
+      const parts = match.split(/[:=]/);
+      return `${parts[0]}: "[REDACTED]"`;
+    })
+    .replace(/Bearer\s+[A-Za-z0-9\-_.]+/gi, "Bearer [REDACTED]");
+}
+
+function rotateLogFileIfNeeded(filePath) {
+  try {
+    if (fs.existsSync(filePath)) {
+      const stats = fs.statSync(filePath);
+      // If log file exceeds 5MB, rotate it up to 3 generations
+      if (stats.size > 5 * 1024 * 1024) {
+        const dir = path.dirname(filePath);
+        for (let i = 2; i >= 1; i--) {
+          const oldFile = path.join(dir, `aura-island.${i}.log`);
+          const targetFile = path.join(dir, `aura-island.${i + 1}.log`);
+          if (fs.existsSync(oldFile)) {
+            try {
+              if (fs.existsSync(targetFile)) fs.unlinkSync(targetFile);
+              fs.renameSync(oldFile, targetFile);
+            } catch (_) {}
+          }
+        }
+        try {
+          fs.renameSync(filePath, path.join(dir, "aura-island.1.log"));
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
 }
 
 function logToFile(msg, err = null) {
   const timestamp = new Date().toISOString();
-  const logLine = `[${timestamp}] ${msg}${err ? ` | Error: ${err.stack || err}` : ""}\n`;
-  console.log(logLine.trim());
+  const rawLine = `[${timestamp}] ${msg}${err ? ` | Error: ${err.stack || err}` : ""}`;
+  const safeLine = redactSecrets(rawLine) + "\n";
+  console.log(safeLine.trim());
   try {
     const logPath = getLogFilePath();
-    fs.appendFileSync(logPath, logLine, "utf8");
+    rotateLogFileIfNeeded(logPath);
+    fs.appendFileSync(logPath, safeLine, "utf8");
   } catch (_) {}
+}
+
+// Watchdog: max 3 restarts per minute
+const crashRestartTimestamps = [];
+function handleWatchdogCrash(reason) {
+  logToFile(`WATCHDOG TRIGGERED: ${reason}`);
+  const now = Date.now();
+  while (crashRestartTimestamps.length > 0 && now - crashRestartTimestamps[0] > 60000) {
+    crashRestartTimestamps.shift();
+  }
+  if (crashRestartTimestamps.length < 3) {
+    crashRestartTimestamps.push(now);
+    logToFile(`Watchdog restarting window (attempt ${crashRestartTimestamps.length}/3 in 60s)`);
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.reload();
+      } else {
+        createWindow();
+      }
+    }, 500);
+  } else {
+    logToFile("Watchdog: Restart budget exceeded (max 3 restarts per 60s). Suppressing restart to prevent infinite crash loop.");
+  }
 }
 
 process.on("uncaughtException", (err) => {
@@ -703,6 +771,12 @@ ipcMain.handle("update-window-position", (event, xPercent, yOffset) => {
   const scaleFactor = currentDisplay.scaleFactor || 1;
   const snapped = snapBoundsToDevicePixels(currentDisplay.bounds, scaleFactor);
   mainWindow.setBounds(snapped);
+});
+
+ipcMain.handle("restore-previous-focus", () => {
+  try {
+    appBarService.restorePreviousFocus?.();
+  } catch (_) {}
 });
 
 ipcMain.handle("open-external", (event, url) => {
@@ -1346,6 +1420,39 @@ ipcMain.handle("notes:clear", () => {
 const clipboardHistory = [];
 let lastClipboardText = "";
 
+function getClipboardHistoryFile() {
+  try {
+    const userData = app.getPath("userData");
+    return path.join(userData, "clipboard_history.json");
+  } catch (_) {
+    return null;
+  }
+}
+
+function loadClipboardHistoryFromDisk() {
+  const filePath = getClipboardHistoryFile();
+  if (!filePath) return;
+  try {
+    if (fs.existsSync(filePath)) {
+      const parsed = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      if (Array.isArray(parsed)) {
+        clipboardHistory.length = 0;
+        clipboardHistory.push(...parsed.slice(0, 25));
+      }
+    }
+  } catch (_) {}
+}
+
+function saveClipboardHistoryToDisk() {
+  const filePath = getClipboardHistoryFile();
+  if (!filePath) return;
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(clipboardHistory.slice(0, 25), null, 2), "utf-8");
+  } catch (_) {}
+}
+
+loadClipboardHistoryFromDisk();
+
 function setupClipboardMonitor() {
   setInterval(() => {
     try {
@@ -1371,6 +1478,7 @@ function setupClipboardMonitor() {
         if (clipboardHistory.length > 25) {
           clipboardHistory.pop();
         }
+        saveClipboardHistoryToDisk();
       }
     } catch (_) {}
   }, 1200);
@@ -1389,6 +1497,7 @@ ipcMain.handle("clipboard:write-text", (event, text) => {
 
 ipcMain.handle("clipboard:clear", () => {
   clipboardHistory.length = 0;
+  saveClipboardHistoryToDisk();
   return true;
 });
 
@@ -1697,6 +1806,14 @@ const createWindow = () => {
     }
   });
 
+  mainWindow.webContents.on("render-process-gone", (event, details) => {
+    handleWatchdogCrash(`render-process-gone (${details?.reason || "unknown"}, exitCode: ${details?.exitCode})`);
+  });
+
+  mainWindow.webContents.on("unresponsive", () => {
+    logToFile("Window became unresponsive");
+  });
+
   mainWindow.on("blur", () => {
     ensureAlwaysOnTop();
     try {
@@ -1897,6 +2014,35 @@ app.whenReady().then(() => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("system-resume");
       ensureAlwaysOnTop();
+    }
+  });
+
+  powerMonitor.on("suspend", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("system-suspend");
+    }
+  });
+
+  powerMonitor.on("lock-screen", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("system-lock");
+    }
+  });
+
+  powerMonitor.on("unlock-screen", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("system-unlock");
+      ensureAlwaysOnTop();
+    }
+  });
+
+  nativeTheme.on("updated", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("system-theme-updated", {
+        shouldUseDarkColors: nativeTheme.shouldUseDarkColors,
+        inForcedColorsMode: nativeTheme.inForcedColorsMode,
+        shouldUseHighContrastColors: nativeTheme.shouldUseHighContrastColors,
+      });
     }
   });
 

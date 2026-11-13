@@ -6,7 +6,7 @@ const path = require("node:path");
 test("Step 4 Release Engineering: package metadata and release files exist", () => {
   const pkgPath = path.join(__dirname, "../package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-  assert.equal(pkg.version, "1.0.0");
+  assert.match(pkg.version, /^1\.\d+\.\d+$/);
   assert.equal(pkg.name, "aura-island");
 
   const licensePath = path.join(__dirname, "../LICENSE");

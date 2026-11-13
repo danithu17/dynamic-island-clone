@@ -196,6 +196,21 @@ export class AlertQueue {
       this.queue = this.queue.filter((a) => a.type !== type);
     }
   }
+
+  clearAll() {
+    this.clearTimer();
+    this.activeAlert = null;
+    this.queue = [];
+    this.notify();
+  }
+
+  getCurrentAlert() {
+    return this.activeAlert;
+  }
+
+  getQueueLength() {
+    return this.queue.length;
+  }
 }
 
 export const alertQueue = new AlertQueue();
