@@ -25,6 +25,7 @@ export default function Island() {
   const [batteryInfo, setBatteryInfo] = useState({ percent: 100, charging: false });
   const [currentTime, setCurrentTime] = useState("");
   const [shelfCount, setShelfCount] = useState(0);
+  const [setupDimensions, setSetupDimensions] = useState({ width: 480, height: 252 });
 
   // Menu Bar / Reserved Strip State
   const [stripHeight, setStripHeight] = useState(34);
@@ -371,6 +372,10 @@ export default function Island() {
             animationSpeed: s.island?.animationSpeed || "normal",
             accentColor: s.appearance?.accentColor || "#0a84ff",
           });
+          if (s.firstRun && s.firstRun.completed === false) {
+            setMode("setup");
+            window.electronAPI?.setIgnoreMouseEvents?.(false);
+          }
         }
       });
     }
@@ -692,7 +697,9 @@ export default function Island() {
 
   if (isSetup) {
     width = 480;
+    if (setupDimensions?.width) width = setupDimensions.width;
     height = 252;
+    if (setupDimensions?.height) height = setupDimensions.height;
   } else if (isDragMouth) {
     width = 380;
     height = 84;
@@ -869,6 +876,11 @@ export default function Island() {
             settings={islandSettings}
             onUpdateSetting={(k, v) => {
               window.electronAPI?.setSetting?.(k, v);
+            }}
+            onSceneChange={(dim) => {
+              if (dim?.width && dim?.height) {
+                setSetupDimensions(dim);
+              }
             }}
             onComplete={() => {
               setMode("still");

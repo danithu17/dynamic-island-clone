@@ -667,6 +667,19 @@ ipcMain.handle("get-displays", () => {
   }));
 });
 
+function snapBoundsToDevicePixels(bounds, scaleFactor = 1) {
+  const physX = Math.round(bounds.x * scaleFactor);
+  const physY = Math.round(bounds.y * scaleFactor);
+  const physW = Math.round(bounds.width * scaleFactor);
+  const physH = Math.round(bounds.height * scaleFactor);
+  return {
+    x: Math.round(physX / scaleFactor),
+    y: Math.round(physY / scaleFactor),
+    width: Math.round(physW / scaleFactor),
+    height: Math.round(physH / scaleFactor),
+  };
+}
+
 ipcMain.handle("set-display", (event, displayId) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     const displays = screen.getAllDisplays();
@@ -674,8 +687,9 @@ ipcMain.handle("set-display", (event, displayId) => {
       displays.find((d) => d.id.toString() === displayId.toString()) ||
       screen.getPrimaryDisplay();
 
-    const { x, y, width, height } = targetDisplay.bounds;
-    mainWindow.setBounds({ x, y, width, height });
+    const scaleFactor = targetDisplay.scaleFactor || 1;
+    const snapped = snapBoundsToDevicePixels(targetDisplay.bounds, scaleFactor);
+    mainWindow.setBounds(snapped);
     mainWindow.showInactive();
     ensureAlwaysOnTop();
     appBarService.debouncedUpdatePos();
@@ -686,8 +700,9 @@ ipcMain.handle("update-window-position", (event, xPercent, yOffset) => {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   const currentBounds = mainWindow.getBounds();
   const currentDisplay = screen.getDisplayMatching(currentBounds);
-  const { x, y, width, height } = currentDisplay.bounds;
-  mainWindow.setBounds({ x, y, width, height });
+  const scaleFactor = currentDisplay.scaleFactor || 1;
+  const snapped = snapBoundsToDevicePixels(currentDisplay.bounds, scaleFactor);
+  mainWindow.setBounds(snapped);
 });
 
 ipcMain.handle("open-external", (event, url) => {
@@ -1294,6 +1309,18 @@ ipcMain.handle("settings:open-window", (event, section) => {
   return false;
 });
 
+ipcMain.handle("setup:run-again", () => {
+  if (settingsStore) {
+    settingsStore.set("firstRun.completed", false);
+    settingsStore.set("firstRun.step", 0);
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("first-run:start");
+    mainWindow.webContents.send("settings:changed", { settings: settingsStore ? settingsStore.getAll() : {} });
+  }
+  return true;
+});
+
 ipcMain.handle("shelf:clear", () => {
   try {
     const { shelfStorage } = require("./services/shelfStorage");
@@ -1623,7 +1650,8 @@ function cleanLegacyStartupEntries() {
 // --- Window Creation ---
 const createWindow = () => {
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { x, y, width, height } = primaryDisplay.bounds;
+  const scaleFactor = primaryDisplay.scaleFactor || 1;
+  const { x, y, width, height } = snapBoundsToDevicePixels(primaryDisplay.bounds, scaleFactor);
 
   mainWindow = new BrowserWindow({
     width,
@@ -1756,6 +1784,19 @@ function updateTrayMenu() {
       },
     },
     { type: "separator" },
+    {
+      label: "Run setup again",
+      click: () => {
+        if (settingsStore) {
+          settingsStore.set("firstRun.completed", false);
+          settingsStore.set("firstRun.step", 0);
+        }
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("first-run:start");
+          mainWindow.webContents.send("settings:changed", { settings: settingsStore ? settingsStore.getAll() : {} });
+        }
+      },
+    },
     {
       label: "Settings...",
       accelerator: "Ctrl+,",

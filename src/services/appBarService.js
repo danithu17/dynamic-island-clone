@@ -391,12 +391,13 @@ class AppBarService {
         );
       }
 
-      // Electron DIP positioning
+      // Electron DIP positioning snapped to physical device pixels
+      const scale = display.scaleFactor || 1;
       this.mainWindow.setBounds({
-        x: dipBounds.x,
-        y: dipBounds.y,
-        width: dipBounds.width,
-        height: dipBounds.height,
+        x: Math.round(Math.round(dipBounds.x * scale) / scale),
+        y: Math.round(Math.round(dipBounds.y * scale) / scale),
+        width: Math.round(Math.round(dipBounds.width * scale) / scale),
+        height: Math.round(Math.round(dipBounds.height * scale) / scale),
       });
     } catch (e) {
       this.logger("Failed to position window to monitor top:", e);
