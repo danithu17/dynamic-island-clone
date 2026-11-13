@@ -581,6 +581,16 @@ export default function Island() {
       hoverEnterTimer.current = null;
     }
     if (mouseLeaveTimer.current) clearTimeout(mouseLeaveTimer.current);
+
+    // If still in resting notch mode, instantly release mouse capture so other apps are never blocked
+    if (mode === "still") {
+      isHoveredRef.current = false;
+      setIsHovered(false);
+      alertQueue.resumeTimer();
+      window.electronAPI?.setIgnoreMouseEvents?.(true, true);
+      return;
+    }
+
     const delay = islandSettings.collapseDelay || 350;
     mouseLeaveTimer.current = setTimeout(() => {
       mouseLeaveTimer.current = null;
@@ -591,7 +601,7 @@ export default function Island() {
       setActiveView("media");
       window.electronAPI?.setIgnoreMouseEvents?.(true, true);
     }, delay);
-  }, [islandSettings.collapseDelay]);
+  }, [islandSettings.collapseDelay, mode]);
 
   // Drag and drop mouth handlers
   const handleDragEnter = useCallback((e) => {
@@ -730,7 +740,7 @@ export default function Island() {
         }}
       />
       {/* Click-outside backdrop layer: clicking outside the island turns it off / collapses it */}
-      {(isExpanded || activeAlert || (mode !== "still" && !isSetup)) && (
+      {(isExpanded || (mode !== "still" && !isSetup)) && (
         <div
           id="AuraClickOutsideBackdrop"
           onMouseDown={(e) => {

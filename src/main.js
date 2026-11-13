@@ -598,10 +598,6 @@ function ensureAlwaysOnTop() {
       } catch (_) {}
     }
   }
-
-  try {
-    mainWindow.moveTop();
-  } catch (_) {}
 }
 
 function setAlwaysOnTopState(enable) {
@@ -643,15 +639,14 @@ ipcMain.handle("set-ignore-mouse-events", (event, ignore, forward) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     try {
       if (ignore) {
-        const useForward = forward !== undefined ? forward : true;
+        const useForward = process.platform === "darwin" ? Boolean(forward) : false;
         mainWindow.setIgnoreMouseEvents(true, { forward: useForward });
       } else {
         mainWindow.setIgnoreMouseEvents(false);
-        ensureAlwaysOnTop();
       }
     } catch (e) {
       try {
-        mainWindow.setIgnoreMouseEvents(true, { forward: true });
+        mainWindow.setIgnoreMouseEvents(true);
       } catch (_) {}
     }
   }
@@ -1673,12 +1668,20 @@ app.whenReady().then(() => {
     logToFile("Failed to register Alt+F global shortcut:", e);
   }
 
-  // Register Settings hotkey (Ctrl+,)
+  // Register Settings hotkey (Ctrl+Alt+, and Ctrl+,)
   try {
-    const hotkey = (settingsStore && settingsStore.get("shortcuts.openSettings")) || "Ctrl+,";
-    globalShortcut.register(hotkey, () => {
-      if (openSettingsWindow) openSettingsWindow();
-    });
+    const hotkeys = ["Ctrl+Alt+,", "Ctrl+,"];
+    const configuredHotkey = settingsStore && settingsStore.get("shortcuts.openSettings");
+    if (configuredHotkey && !hotkeys.includes(configuredHotkey)) {
+      hotkeys.push(configuredHotkey);
+    }
+    for (const hk of hotkeys) {
+      try {
+        globalShortcut.register(hk, () => {
+          if (openSettingsWindow) openSettingsWindow();
+        });
+      } catch (_) {}
+    }
   } catch (e) {
     logToFile("Failed to register Settings global shortcut:", e);
   }
@@ -1728,18 +1731,14 @@ app.whenReady().then(() => {
     }
   });
 
-  // Topmost guard
+  // Topmost guard (non-stealing check)
   setInterval(() => {
     if (alwaysOnTopEnabled && mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
       if (!mainWindow.isAlwaysOnTop()) {
         ensureAlwaysOnTop();
-      } else {
-        try {
-          mainWindow.moveTop();
-        } catch (_) {}
       }
     }
-  }, 3000);
+  }, 5000);
 
   // Automatic update check on startup (5s) and every 24h
   setTimeout(() => {

@@ -858,21 +858,21 @@ class AppBarService {
             if (kbd) {
               const vk = kbd.vkCode;
               if (vk === 0xAF) {
-                this.notifyKeyboardControl("volup");
+                setTimeout(() => this.notifyKeyboardControl("volup"), 0);
               } else if (vk === 0xAE) {
-                this.notifyKeyboardControl("voldown");
+                setTimeout(() => this.notifyKeyboardControl("voldown"), 0);
               } else if (vk === 0xAD) {
-                this.notifyKeyboardControl("mute");
+                setTimeout(() => this.notifyKeyboardControl("mute"), 0);
               } else if (vk === 0xD8 || vk === 0xE0) {
-                this.notifyKeyboardControl("brightnessup");
+                setTimeout(() => this.notifyKeyboardControl("brightnessup"), 0);
               } else if (vk === 0xD9 || vk === 0xE1) {
-                this.notifyKeyboardControl("brightnessdown");
+                setTimeout(() => this.notifyKeyboardControl("brightnessdown"), 0);
               } else if (vk === 0xCD) {
-                this.notifyKeyboardControl("playpause");
+                setTimeout(() => this.notifyKeyboardControl("playpause"), 0);
               } else if (vk === 0xB0) {
-                this.notifyKeyboardControl("next");
+                setTimeout(() => this.notifyKeyboardControl("next"), 0);
               } else if (vk === 0xB1) {
-                this.notifyKeyboardControl("previous");
+                setTimeout(() => this.notifyKeyboardControl("previous"), 0);
               }
             }
           } catch (_) {}

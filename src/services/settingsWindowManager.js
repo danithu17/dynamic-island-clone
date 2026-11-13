@@ -40,14 +40,23 @@ function resolveSettingsUrl() {
 
   // 2. Production build file
   if (typeof SETTINGS_WINDOW_VITE_NAME !== "undefined" && SETTINGS_WINDOW_VITE_NAME) {
-    const prodPath = path.join(__dirname, `../renderer/${SETTINGS_WINDOW_VITE_NAME}/index.html`);
-    if (fs.existsSync(prodPath)) {
-      return { type: "file", target: prodPath };
+    const candidateFiles = [
+      path.join(__dirname, `../renderer/${SETTINGS_WINDOW_VITE_NAME}/settings.html`),
+      path.join(__dirname, `../renderer/${SETTINGS_WINDOW_VITE_NAME}/index.html`),
+      path.join(app ? app.getAppPath() : process.cwd(), `.vite/renderer/${SETTINGS_WINDOW_VITE_NAME}/settings.html`),
+      path.join(app ? app.getAppPath() : process.cwd(), `.vite/renderer/${SETTINGS_WINDOW_VITE_NAME}/index.html`),
+    ];
+    for (const p of candidateFiles) {
+      if (fs.existsSync(p)) {
+        return { type: "file", target: p };
+      }
     }
   }
 
   const fileCandidates = [
+    path.join(__dirname, "../renderer/settings_window/settings.html"),
     path.join(__dirname, "../renderer/settings_window/index.html"),
+    path.join(app ? app.getAppPath() : process.cwd(), ".vite/renderer/settings_window/settings.html"),
     path.join(app ? app.getAppPath() : process.cwd(), ".vite/renderer/settings_window/index.html"),
     path.join(__dirname, "../settings.html"),
     path.join(app ? app.getAppPath() : process.cwd(), "settings.html"),
@@ -151,6 +160,10 @@ function openSettingsWindow(section = "general") {
     settingsWindow.loadFile(target.target);
   }
 
+  settingsWindow.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
+    console.error(`Settings window failed to load: ${errorDescription} (${errorCode}) at ${validatedURL}`);
+  });
+
   settingsWindow.once("ready-to-show", () => {
     if (!settingsWindow || settingsWindow.isDestroyed()) return;
     settingsWindow.show();
@@ -158,6 +171,14 @@ function openSettingsWindow(section = "general") {
     const targetSection = section || windowState.lastSection || "general";
     settingsWindow.webContents.send("settings:navigate-section", targetSection);
   });
+
+  // Fallback to show window after 1200ms if ready-to-show is delayed
+  setTimeout(() => {
+    if (settingsWindow && !settingsWindow.isDestroyed() && !settingsWindow.isVisible()) {
+      settingsWindow.show();
+      settingsWindow.focus();
+    }
+  }, 1200);
 
   settingsWindow.on("resize", scheduleSaveWindowState);
   settingsWindow.on("move", scheduleSaveWindowState);
