@@ -127,7 +127,7 @@ export default function VolumeDropdown({ onClose }) {
             fontWeight: 600,
             cursor: "pointer",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.07)")}
         >
           <Volume1 size={13} /> Step Down
@@ -150,7 +150,7 @@ export default function VolumeDropdown({ onClose }) {
             fontWeight: 600,
             cursor: "pointer",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.07)")}
         >
           <Volume2 size={13} /> Step Up
@@ -175,7 +175,7 @@ export default function VolumeDropdown({ onClose }) {
           fontSize: 11.5,
           color: "rgba(255, 255, 255, 0.85)",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <span>Sound Settings...</span>

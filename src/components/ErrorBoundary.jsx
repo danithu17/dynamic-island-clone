@@ -100,10 +100,11 @@ export default class ErrorBoundary extends React.Component {
                 type="button"
                 onClick={this.props.onGoHome}
                 style={{
-                  background: "#0070f3",
+                  background: "#0a84ff",
                   border: "none",
                   borderRadius: 6,
-                  padding: "4px 12px",
+                  minHeight: 32,
+                  padding: "6px 14px",
                   color: "#ffffff",
                   fontSize: 10.5,
                   fontWeight: 700,

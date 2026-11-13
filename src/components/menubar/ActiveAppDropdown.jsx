@@ -78,7 +78,7 @@ export default function ActiveAppDropdown({ appData, onClose }) {
           <div
             style={itemStyle}
             onClick={handleShowInFolder}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             <FolderOpen size={13} opacity={0.8} />
@@ -88,7 +88,7 @@ export default function ActiveAppDropdown({ appData, onClose }) {
           <div
             style={itemStyle}
             onClick={handleCopyPath}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             {copied ? <Check size={13} color="#30d158" /> : <Copy size={13} opacity={0.8} />}

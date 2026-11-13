@@ -60,13 +60,14 @@ const App = () => {
             type="button"
             onClick={() => window.location.reload()}
             style={{
-              background: '#0070f3',
+              background: '#0a84ff',
               border: 'none',
               borderRadius: 6,
-              padding: '3px 8px',
+              minHeight: 32,
+              padding: '6px 14px',
               color: '#ffffff',
-              fontSize: 11,
-              fontWeight: 700,
+              fontSize: 11.5,
+              fontWeight: 600,
               cursor: 'pointer'
             }}
           >

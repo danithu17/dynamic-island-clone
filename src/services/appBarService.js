@@ -68,6 +68,8 @@ let MONITORINFO = null;
 let SHAppBarMessage = null;
 let SHQueryUserNotificationState = null;
 let GetForegroundWindow = null;
+let SetForegroundWindow = null;
+let RegisterWindowMessageW = null;
 let GetWindowThreadProcessId = null;
 let GetWindowRect = null;
 let MonitorFromWindow = null;
@@ -123,6 +125,8 @@ if (koffi && process.platform === "win32") {
     SHQueryUserNotificationState = shell32.func("int __stdcall SHQueryUserNotificationState(_Out_ int *pquns)");
 
     GetForegroundWindow = user32.func("uintptr_t __stdcall GetForegroundWindow()");
+    SetForegroundWindow = user32.func("int __stdcall SetForegroundWindow(uintptr_t hWnd)");
+    RegisterWindowMessageW = user32.func("uint32 __stdcall RegisterWindowMessageW(str16 lpString)");
     GetWindowThreadProcessId = user32.func("uint32 __stdcall GetWindowThreadProcessId(uintptr_t hWnd, _Out_ uint32 *lpdwProcessId)");
     GetWindowRect = user32.func("int __stdcall GetWindowRect(uintptr_t hWnd, _Out_ APPBAR_RECT *lpRect)");
     MonitorFromWindow = user32.func("uintptr_t __stdcall MonitorFromWindow(uintptr_t hwnd, uint32 dwFlags)");
@@ -270,6 +274,21 @@ class AppBarService {
           this.debouncedUpdatePos();
         }
       });
+
+      // Hook Explorer restart / taskbar recreated message
+      if (RegisterWindowMessageW) {
+        const wmTaskbar = RegisterWindowMessageW("TaskbarCreated");
+        if (wmTaskbar) {
+          win.hookWindowMessage(wmTaskbar, () => {
+            this.logger("Explorer taskbar recreated (TaskbarCreated received), refreshing AppBar positioning");
+            this.isRegistered = false;
+            if (this.mode === "reserved") {
+              this.registerAppBar();
+            }
+            this.debouncedUpdatePos();
+          });
+        }
+      }
     } catch (e) {
       this.logger("Failed to hook window callback message:", e);
     }
@@ -645,6 +664,17 @@ class AppBarService {
     this.positionWindowToMonitorTop();
     if (this.mode === "reserved") {
       this.updateAppBarPos();
+    }
+  }
+
+  restorePreviousFocus() {
+    if (SetForegroundWindow && this.lastForegroundHwnd && this.lastForegroundHwnd !== this.hwnd) {
+      try {
+        SetForegroundWindow(this.lastForegroundHwnd);
+        this.logger(`Focus restored to previous window HWND=${this.lastForegroundHwnd}`);
+      } catch (e) {
+        this.logger("Failed to restore focus:", e);
+      }
     }
   }
 

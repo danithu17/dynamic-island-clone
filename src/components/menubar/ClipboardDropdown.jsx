@@ -91,7 +91,7 @@ export default function ClipboardDropdown({ onClose }) {
                 transition: "background 0.12s ease",
               }}
               onMouseEnter={(e) => {
-                if (!isJustCopied) e.currentTarget.style.background = "#0070f3";
+                if (!isJustCopied) e.currentTarget.style.background = "#0a84ff";
               }}
               onMouseLeave={(e) => {
                 if (!isJustCopied) e.currentTarget.style.background = "transparent";

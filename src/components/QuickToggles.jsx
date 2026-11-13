@@ -194,7 +194,7 @@ export default function QuickToggles({ textColor = "#ffffff" }) {
           <motion.button
             key={item.id}
             whileHover={{ y: -1, backgroundColor: isActive ? `color-mix(in srgb, ${item.activeColor} 30%, transparent)` : "rgba(255, 255, 255, 0.12)" }}
-            whileTap={{ y: 1 }}
+            whileTap={{ scale: 0.96 }}
             onClick={(e) => {
               e.stopPropagation();
               item.onClick();
@@ -205,12 +205,13 @@ export default function QuickToggles({ textColor = "#ffffff" }) {
               alignItems: "center",
               justifyContent: "center",
               gap: 5,
-              height: 28,
+              height: 32,
+              minHeight: 32,
               borderRadius: 8,
               border: isActive ? `1px solid ${item.activeColor}60` : "1px solid rgba(255, 255, 255, 0.08)",
               background: isActive ? `color-mix(in srgb, ${item.activeColor} 22%, transparent)` : "rgba(255, 255, 255, 0.06)",
               color: isActive ? "#ffffff" : "rgba(255, 255, 255, 0.75)",
-              fontSize: 10.5,
+              fontSize: 11,
               fontWeight: 600,
               cursor: "pointer",
               boxShadow: isActive ? `0 0 10px ${item.activeColor}30` : "none",

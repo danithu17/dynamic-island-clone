@@ -425,10 +425,18 @@ class SettingsStore {
         fs.mkdirSync(dir, { recursive: true });
       }
 
-      // Atomic write: write to temp file then rename
+      // Atomic write: write to temp file then rename with Windows fallback
       const tmpPath = `${this.filePath}.tmp.${Date.now()}`;
       fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), "utf8");
-      fs.renameSync(tmpPath, this.filePath);
+      try {
+        fs.renameSync(tmpPath, this.filePath);
+      } catch (renameErr) {
+        // Windows file-lock fallback (e.g. indexer or antivirus lock)
+        fs.copyFileSync(tmpPath, this.filePath);
+        try {
+          fs.unlinkSync(tmpPath);
+        } catch (_) {}
+      }
 
       // Keep a backup copy
       const bakPath = `${this.filePath}.bak`;

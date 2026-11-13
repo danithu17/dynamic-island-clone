@@ -60,7 +60,7 @@ export default function BluetoothDropdown({ onClose }) {
           fontSize: 12,
           color: "rgba(255, 255, 255, 0.85)",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <span>Bluetooth Settings...</span>

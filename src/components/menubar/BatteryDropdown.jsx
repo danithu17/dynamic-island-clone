@@ -118,7 +118,7 @@ export default function BatteryDropdown({ batteryInfo, onClose }) {
             transition: "background 0.12s ease",
           }}
           onMouseEnter={(e) => {
-            if (powerMode !== mode.id) e.currentTarget.style.background = "#0070f3";
+            if (powerMode !== mode.id) e.currentTarget.style.background = "#0a84ff";
           }}
           onMouseLeave={(e) => {
             if (powerMode !== mode.id) e.currentTarget.style.background = "transparent";
@@ -157,7 +157,7 @@ export default function BatteryDropdown({ batteryInfo, onClose }) {
             fontWeight: 600,
             cursor: "pointer",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)")}
           title="Put Computer to Sleep"
         >
@@ -181,7 +181,7 @@ export default function BatteryDropdown({ batteryInfo, onClose }) {
             fontWeight: 600,
             cursor: "pointer",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)")}
           title="Restart Computer"
         >
@@ -231,7 +231,7 @@ export default function BatteryDropdown({ batteryInfo, onClose }) {
           fontSize: 12,
           color: "rgba(255, 255, 255, 0.85)",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <span>Power & Sleep Settings...</span>

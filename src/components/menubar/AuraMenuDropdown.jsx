@@ -71,7 +71,7 @@ export default function AuraMenuDropdown({
       <div
         style={itemStyle}
         onClick={() => handleItemClick(() => onOpenAbout?.())}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -89,7 +89,7 @@ export default function AuraMenuDropdown({
             onOpenSettings?.("general");
           }
         })}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -109,7 +109,7 @@ export default function AuraMenuDropdown({
       <div
         style={itemStyle}
         onClick={() => handleItemClick(() => onSelectMode?.("reserved"))}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <span>Reserved Top Strip</span>
@@ -119,7 +119,7 @@ export default function AuraMenuDropdown({
       <div
         style={itemStyle}
         onClick={() => handleItemClick(() => onSelectMode?.("overlay"))}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <span>Overlay (Floating)</span>
@@ -129,7 +129,7 @@ export default function AuraMenuDropdown({
       <div
         style={itemStyle}
         onClick={() => handleItemClick(() => onSelectMode?.("autohide"))}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <span>Auto-hide Edge</span>
@@ -139,7 +139,7 @@ export default function AuraMenuDropdown({
       <div
         style={itemStyle}
         onClick={() => handleItemClick(() => onReleaseSpace?.())}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -158,7 +158,7 @@ export default function AuraMenuDropdown({
       <div
         style={itemStyle}
         onClick={() => handleItemClick(() => window.electronAPI?.powerAction?.("lock"))}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -171,7 +171,7 @@ export default function AuraMenuDropdown({
       <div
         style={itemStyle}
         onClick={() => handleItemClick(() => window.electronAPI?.powerAction?.("sleep"))}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -183,7 +183,7 @@ export default function AuraMenuDropdown({
       <div
         style={itemStyle}
         onClick={() => handleItemClick(() => window.electronAPI?.powerAction?.("restart"))}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -207,7 +207,7 @@ export default function AuraMenuDropdown({
       <div
         style={itemStyle}
         onClick={() => handleItemClick(() => window.electronAPI?.powerAction?.("signout"))}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -222,7 +222,7 @@ export default function AuraMenuDropdown({
       <div
         style={itemStyle}
         onClick={() => handleItemClick(() => window.electronAPI?.relaunchApp?.())}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>

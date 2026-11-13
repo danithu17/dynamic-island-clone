@@ -57,7 +57,7 @@ export default function DropdownPanel({
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
-          transition={{ type: "spring", stiffness: 450, damping: 32 }}
+          transition={designTokens.motion.springTab}
           tabIndex={-1}
           style={{
             position: "fixed",
@@ -67,9 +67,7 @@ export default function DropdownPanel({
             width: typeof width === "number" ? `${snapToPhysicalPixels(width)}px` : width,
             maxHeight: `${maxHeight}px`,
             borderRadius: designTokens.radii.panel,
-            background: "rgba(20, 21, 25, 0.96)",
-            backdropFilter: "blur(28px) saturate(180%)",
-            WebkitBackdropFilter: "blur(28px) saturate(180%)",
+            background: designTokens.colors.panelBg,
             border: `1px solid ${designTokens.colors.panelBorder}`,
             boxShadow: designTokens.shadows.panel,
             color: designTokens.colors.textPrimary,

@@ -99,7 +99,7 @@ export default function ShelfDropdown({ onClose }) {
               cursor: "pointer",
               transition: "background 0.12s ease",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
@@ -187,7 +187,7 @@ export default function ShelfDropdown({ onClose }) {
           fontSize: 11.5,
           color: "rgba(255, 255, 255, 0.8)",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
         <FolderOpen size={13} opacity={0.8} />

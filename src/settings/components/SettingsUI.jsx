@@ -781,7 +781,8 @@ export function SettingsButton({
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
-        padding: isPrimary ? "7px 18px" : "6px 14px",
+        minHeight: 32,
+        padding: isPrimary ? "6px 18px" : "6px 14px",
         borderRadius: isPrimary ? 20 : 8,
         background: bg,
         color,
@@ -792,6 +793,22 @@ export function SettingsButton({
         opacity: disabled ? 0.45 : 1,
         transition: "all 0.15s ease",
         outline: "none",
+        boxSizing: "border-box",
+      }}
+      onMouseDown={(e) => {
+        if (!disabled) e.currentTarget.style.transform = "scale(0.96)";
+      }}
+      onMouseUp={(e) => {
+        e.currentTarget.style.transform = "scale(1)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "scale(1)";
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.boxShadow = `0 0 0 2px ${accentColor}`;
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.boxShadow = "none";
       }}
     >
       {icon}

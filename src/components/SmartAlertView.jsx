@@ -16,50 +16,54 @@ import {
   CheckCircle,
   AlertTriangle,
 } from "lucide-react";
+import designTokens from "../styles/designTokens";
 
 export function getAlertIcon(type, iconName, color = "#ffffff") {
+  const iconProps = { size: 14, strokeWidth: 1.75, color };
   switch (iconName || type) {
     case "battery-low":
-      return <Battery size={14} color={color} />;
+      return <Battery {...iconProps} />;
     case "battery-charging":
-      return <Zap size={14} color={color} />;
+      return <Zap {...iconProps} />;
     case "battery-full":
-      return <BatteryCharging size={14} color={color} />;
+      return <BatteryCharging {...iconProps} />;
     case "download":
-      return <Download size={14} color={color} />;
+      return <Download {...iconProps} />;
     case "timer":
-      return <Timer size={14} color={color} />;
+      return <Timer {...iconProps} />;
     case "wifi":
-      return <Wifi size={14} color={color} />;
+      return <Wifi {...iconProps} />;
     case "wifi-off":
-      return <WifiOff size={14} color={color} />;
+      return <WifiOff {...iconProps} />;
     case "bluetooth":
-      return <Bluetooth size={14} color={color} />;
+      return <Bluetooth {...iconProps} />;
     case "volume":
-      return <Volume2 size={14} color={color} />;
+      return <Volume2 {...iconProps} />;
     case "volume-mute":
-      return <VolumeX size={14} color={color} />;
+      return <VolumeX {...iconProps} />;
     case "brightness":
     case "sun":
-      return <Sun size={14} color={color} />;
+      return <Sun {...iconProps} />;
     case "mail":
-      return <Mail size={14} color={color} />;
+      return <Mail {...iconProps} />;
+    case "warning":
+      return <AlertTriangle {...iconProps} />;
     default:
-      return <CheckCircle size={14} color={color} />;
+      return <CheckCircle {...iconProps} />;
   }
 }
 
 export default function SmartAlertView({ alert, onClick }) {
   if (!alert) return null;
 
-  const accentColor = alert.accentColor || "#0a84ff";
+  const accentColor = alert.accentColor || designTokens.colors.accentBlue;
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95, y: -2 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.92, y: -2 }}
-      transition={{ type: "spring", stiffness: 450, damping: 28 }}
+      transition={designTokens.motion.springAlert}
       onClick={(e) => {
         if (alert.action) {
           e.stopPropagation();
@@ -77,7 +81,7 @@ export default function SmartAlertView({ alert, onClick }) {
         boxSizing: "border-box",
         cursor: alert.action ? "pointer" : "default",
         userSelect: "none",
-        fontFamily: '"Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif',
+        fontFamily: designTokens.typography.fontFamily,
         WebkitFontSmoothing: "antialiased",
         textRendering: "optimizeLegibility",
       }}
@@ -105,7 +109,7 @@ export default function SmartAlertView({ alert, onClick }) {
           <span
             style={{
               fontSize: 11.5,
-              fontWeight: 650,
+              fontWeight: designTokens.typography.weightSemibold,
               color: "#ffffff",
               whiteSpace: "nowrap",
               overflow: "hidden",
@@ -118,9 +122,9 @@ export default function SmartAlertView({ alert, onClick }) {
           {alert.subtitle && !alert.buttons && typeof alert.progress !== "number" && (
             <span
               style={{
-                fontSize: 9.5,
-                fontWeight: 500,
-                color: "rgba(255, 255, 255, 0.6)",
+                fontSize: 10,
+                fontWeight: designTokens.typography.weightMedium,
+                color: designTokens.colors.textSecondary,
                 whiteSpace: "nowrap",
                 letterSpacing: "-0.1px",
               }}
@@ -134,11 +138,12 @@ export default function SmartAlertView({ alert, onClick }) {
       {/* Right side: Modern Action Buttons, Progress Bar, or Subtitle */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
         {alert.buttons && alert.buttons.length > 0 ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {alert.buttons.map((btn, idx) => (
-              <button
+              <motion.button
                 key={idx}
                 type="button"
+                whileTap={{ scale: 0.96 }}
                 onClick={(e) => {
                   e.stopPropagation();
                   btn.onClick?.();
@@ -151,9 +156,10 @@ export default function SmartAlertView({ alert, onClick }) {
                     ? "1px solid rgba(255, 255, 255, 0.28)"
                     : "1px solid rgba(255, 255, 255, 0.12)",
                   borderRadius: 9999,
+                  minHeight: 32,
                   padding: "4px 12px",
                   fontSize: 11,
-                  fontWeight: 650,
+                  fontWeight: designTokens.typography.weightSemibold,
                   color: "#ffffff",
                   cursor: "pointer",
                   fontFamily: "inherit",
@@ -163,21 +169,10 @@ export default function SmartAlertView({ alert, onClick }) {
                   boxShadow: btn.primary
                     ? `0 2px 8px color-mix(in srgb, ${accentColor} 50%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.4)`
                     : "0 2px 6px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
-                  transition: "transform 0.12s ease, opacity 0.12s ease, background 0.15s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "scale(1.05)";
-                  if (!btn.primary) e.currentTarget.style.background = "rgba(255, 255, 255, 0.22)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "scale(1)";
-                  if (!btn.primary) e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
                 }}
               >
                 {btn.label}
-              </button>
+              </motion.button>
             ))}
           </div>
         ) : typeof alert.progress === "number" ? (
@@ -204,7 +199,14 @@ export default function SmartAlertView({ alert, onClick }) {
               />
             </div>
             {alert.subtitle && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255, 255, 255, 0.9)" }}>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: designTokens.typography.weightBold,
+                  fontVariantNumeric: "tabular-nums",
+                  color: "rgba(255, 255, 255, 0.9)",
+                }}
+              >
                 {alert.subtitle}
               </span>
             )}
@@ -213,7 +215,7 @@ export default function SmartAlertView({ alert, onClick }) {
           <span
             style={{
               fontSize: 10.5,
-              fontWeight: 600,
+              fontWeight: designTokens.typography.weightSemibold,
               color: accentColor,
               whiteSpace: "nowrap",
               maxWidth: 120,

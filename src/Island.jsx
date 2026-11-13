@@ -26,6 +26,78 @@ export default function Island() {
   const [currentTime, setCurrentTime] = useState("");
   const [shelfCount, setShelfCount] = useState(0);
   const [setupDimensions, setSetupDimensions] = useState({ width: 480, height: 252 });
+  const [wakeHint, setWakeHint] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [systemPrefersReducedMotion, setSystemPrefersReducedMotion] = useState(() => {
+    if (typeof window !== "undefined" && window.matchMedia) {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+    return false;
+  });
+
+  // Track system preference for reduced motion live
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onChange = (e) => setSystemPrefersReducedMotion(e.matches);
+    if (mql.addEventListener) {
+      mql.addEventListener("change", onChange);
+      return () => mql.removeEventListener("change", onChange);
+    }
+  }, []);
+
+  // Frame timing measurement for 60fps budget verification
+  const animFrameTracker = useRef({
+    rafId: null,
+    lastTime: 0,
+    worstFrameTime: 0,
+    frameTimes: [],
+    active: false,
+  });
+
+  const startFrameTracking = useCallback(() => {
+    if (animFrameTracker.current.active) return;
+    animFrameTracker.current.active = true;
+    animFrameTracker.current.lastTime = performance.now();
+    animFrameTracker.current.frameTimes = [];
+
+    const checkFrame = (now) => {
+      if (!animFrameTracker.current.active) return;
+      const delta = now - animFrameTracker.current.lastTime;
+      animFrameTracker.current.lastTime = now;
+      if (delta > 0 && delta < 500) {
+        animFrameTracker.current.frameTimes.push(delta);
+        if (delta > animFrameTracker.current.worstFrameTime) {
+          animFrameTracker.current.worstFrameTime = delta;
+        }
+      }
+      animFrameTracker.current.rafId = requestAnimationFrame(checkFrame);
+    };
+    animFrameTracker.current.rafId = requestAnimationFrame(checkFrame);
+  }, []);
+
+  const stopFrameTracking = useCallback(() => {
+    if (!animFrameTracker.current.active) return;
+    animFrameTracker.current.active = false;
+    if (animFrameTracker.current.rafId) {
+      cancelAnimationFrame(animFrameTracker.current.rafId);
+      animFrameTracker.current.rafId = null;
+    }
+    const frames = animFrameTracker.current.frameTimes;
+    if (frames.length > 0) {
+      const avg = frames.reduce((a, b) => a + b, 0) / frames.length;
+      const worst = animFrameTracker.current.worstFrameTime;
+      const fps = Math.round(1000 / avg);
+      if (typeof window !== "undefined") {
+        window.__auraFrameStats = {
+          avgFps: Math.min(60, fps),
+          avgFrameTimeMs: parseFloat(avg.toFixed(2)),
+          worstFrameTimeMs: parseFloat(worst.toFixed(2)),
+          totalFrames: frames.length,
+        };
+      }
+    }
+  }, []);
 
   // Menu Bar / Reserved Strip State
   const [stripHeight, setStripHeight] = useState(34);
@@ -559,38 +631,67 @@ export default function Island() {
     };
   }, [mode]);
 
-  // Mouse leave & enter handlers
+  // Track mode in ref to avoid stale closures
+  const modeRef = useRef(mode);
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+
+  const hysteresisTimer = useRef(null);
+
+  // Mouse leave & enter handlers with jitter hysteresis & collapse cancellation
   const handleMouseEnter = useCallback(() => {
     if (mouseLeaveTimer.current) {
       clearTimeout(mouseLeaveTimer.current);
       mouseLeaveTimer.current = null;
+    }
+    if (hysteresisTimer.current) {
+      clearTimeout(hysteresisTimer.current);
+      hysteresisTimer.current = null;
     }
     isHoveredRef.current = true;
     setIsHovered(true);
     alertQueue.pauseTimer();
     window.electronAPI?.setIgnoreMouseEvents?.(false);
 
+    if (modeRef.current === "expanded") {
+      return;
+    }
+
     const delay = islandSettings.hoverDelay || 180;
     if (hoverEnterTimer.current) clearTimeout(hoverEnterTimer.current);
     hoverEnterTimer.current = setTimeout(() => {
+      setIsAnimating(true);
+      startFrameTracking();
       setMode("expanded");
       window.electronAPI?.setIgnoreMouseEvents?.(false);
     }, delay);
-  }, [islandSettings.hoverDelay, activeAlert]);
+  }, [islandSettings.hoverDelay, startFrameTracking]);
 
   const handleMouseLeave = useCallback(() => {
     if (hoverEnterTimer.current) {
       clearTimeout(hoverEnterTimer.current);
       hoverEnterTimer.current = null;
     }
-    if (mouseLeaveTimer.current) clearTimeout(mouseLeaveTimer.current);
+    if (mouseLeaveTimer.current) {
+      clearTimeout(mouseLeaveTimer.current);
+      mouseLeaveTimer.current = null;
+    }
+    if (hysteresisTimer.current) {
+      clearTimeout(hysteresisTimer.current);
+      hysteresisTimer.current = null;
+    }
 
-    // If still in resting notch mode, instantly release mouse capture so other apps are never blocked
-    if (mode === "still") {
-      isHoveredRef.current = false;
-      setIsHovered(false);
-      alertQueue.resumeTimer();
-      window.electronAPI?.setIgnoreMouseEvents?.(true, true);
+    // In resting notch mode, use a short hysteresis delay (140ms) before relinquishing hover
+    // so micro-movements across boundary or window resizing under the cursor do not jitter
+    if (modeRef.current === "still") {
+      hysteresisTimer.current = setTimeout(() => {
+        isHoveredRef.current = false;
+        setIsHovered(false);
+        alertQueue.resumeTimer();
+        window.electronAPI?.setIgnoreMouseEvents?.(true, true);
+        hysteresisTimer.current = null;
+      }, 140);
       return;
     }
 
@@ -600,11 +701,13 @@ export default function Island() {
       isHoveredRef.current = false;
       setIsHovered(false);
       alertQueue.resumeTimer();
+      setIsAnimating(true);
+      startFrameTracking();
       setMode("still");
       setActiveView("media");
       window.electronAPI?.setIgnoreMouseEvents?.(true, true);
     }, delay);
-  }, [islandSettings.collapseDelay, mode]);
+  }, [islandSettings.collapseDelay, startFrameTracking]);
 
   // Drag and drop mouth handlers
   const handleDragEnter = useCallback((e) => {
@@ -710,6 +813,9 @@ export default function Island() {
     // Morph pill to fit compact live activity alert
     width = activeAlert.width || (activeAlert.buttons ? 336 : 272);
     height = Math.max(stripHeight, 38);
+  } else if (wakeHint) {
+    width = 248;
+    height = stripHeight;
   } else if (isPlaying) {
     width = 150;
     height = stripHeight;
@@ -790,10 +896,18 @@ export default function Island() {
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
+        onAnimationStart={() => {
+          setIsAnimating(true);
+          startFrameTracking();
+        }}
+        onAnimationComplete={() => {
+          setIsAnimating(false);
+          stopFrameTracking();
+        }}
         animate={{
           width: `${snapToPhysicalPixels(width)}px`,
           height: `${snapToPhysicalPixels(height)}px`,
-          backgroundColor: "#070709",
+          backgroundColor: "#000000",
           borderBottomLeftRadius: isSetup ? 24 : isDragMouth ? 22 : isExpanded ? 26 : 20,
           borderBottomRightRadius: isSetup ? 24 : isDragMouth ? 22 : isExpanded ? 26 : 20,
           borderTopLeftRadius: isSetup ? 24 : islandSettings.style === "floating" ? (isDragMouth ? 22 : isExpanded ? 26 : 20) : 0,
@@ -804,11 +918,11 @@ export default function Island() {
               ? "0 28px 64px rgba(0, 0, 0, 0.85), 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.22)"
               : activeAlert
                 ? `0 16px 44px rgba(0, 0, 0, 0.75), 0 0 22px ${activeAlert.accentColor || islandSettings.accentColor || "#0a84ff"}40, inset 0 1px 1px rgba(255, 255, 255, 0.25)`
-                : "0 10px 32px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.16)",
+                : "none",
         }}
         transition={
-          islandSettings.reduceMotion
-            ? { duration: 0.05 }
+          (islandSettings.reduceMotion || systemPrefersReducedMotion)
+            ? { duration: 0.001 }
             : {
                 type: "spring",
                 stiffness: 350,
@@ -827,47 +941,57 @@ export default function Island() {
           fontFamily: designTokens.typography.fontFamily,
           WebkitFontSmoothing: "antialiased",
           textRendering: "optimizeLegibility",
-          background: "linear-gradient(180deg, rgba(22, 22, 26, 0.98) 0%, rgba(7, 7, 9, 0.99) 100%)",
-          backdropFilter: "blur(32px) saturate(200%)",
-          WebkitBackdropFilter: "blur(32px) saturate(200%)",
-          border: "1px solid rgba(255, 255, 255, 0.14)",
-          borderTop: (islandSettings.style === "floating" || isSetup) ? "1px solid rgba(255, 255, 255, 0.22)" : "none",
+          backgroundColor: "#000000",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          borderTop: (islandSettings.style === "floating" || isSetup) ? "1px solid rgba(255, 255, 255, 0.18)" : "none",
           zIndex: 999998,
+          willChange: isAnimating ? "width, height" : undefined,
+          transform: "none",
         }}
       >
-        {/* Concave upper notch ears merging with display bezel */}
+        {/* Concave upper notch ears merging with display bezel seamlessly */}
         {islandSettings.style !== "floating" && !isSetup && (
-          <>
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: 0,
+              pointerEvents: "none",
+              zIndex: 999999,
+            }}
+          >
             <svg
               style={{
                 position: "absolute",
                 top: 0,
-                left: -12,
-                width: 13,
+                left: -11.5,
+                width: 12,
                 height: 12,
                 pointerEvents: "none",
-                zIndex: 999,
+                shapeRendering: "geometricPrecision",
               }}
-              viewBox="0 0 13 12"
+              viewBox="0 0 12 12"
             >
-              <path d="M 0,0 A 12,12 0 0,1 12,12 H 13 V 0 Z" fill="#16161a" />
+              <path d="M 0,0 A 12,12 0 0,1 12,12 V 0 Z" fill="#000000" />
             </svg>
 
             <svg
               style={{
                 position: "absolute",
                 top: 0,
-                right: -12,
-                width: 13,
+                right: -11.5,
+                width: 12,
                 height: 12,
                 pointerEvents: "none",
-                zIndex: 999,
+                shapeRendering: "geometricPrecision",
               }}
-              viewBox="0 0 13 12"
+              viewBox="0 0 12 12"
             >
-              <path d="M 0,0 V 12 H 1 A 12,12 0 0,1 13,0 Z" fill="#16161a" />
+              <path d="M 0,0 V 12 A 12,12 0 0,1 12,0 Z" fill="#000000" />
             </svg>
-          </>
+          </div>
         )}
 
         {/* --- STATE: FIRST RUN SETUP IN THE NOTCH --- */}
@@ -885,6 +1009,10 @@ export default function Island() {
             onComplete={() => {
               setMode("still");
               window.electronAPI?.setIgnoreMouseEvents?.(true, true);
+              setWakeHint(true);
+              setTimeout(() => {
+                setWakeHint(false);
+              }, 4000);
             }}
             onOpenSettings={(sec) => {
               window.electronAPI?.openSettingsWindow?.(sec);
@@ -903,109 +1031,132 @@ export default function Island() {
         )}
 
         {/* --- STATE 2: IDLE NOTCH RESTING STATE --- */}
-        {!isSetup && !isExpanded && !isDragMouth && !activeAlert && (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: isPlaying ? "space-between" : (islandMode === "reserved" ? "center" : "space-between"),
-              padding: isPlaying ? "0 12px" : (islandMode === "reserved" ? "0 8px" : "0 12px"),
-              boxSizing: "border-box",
-              fontSize: 11.5,
-              fontWeight: 600,
-              fontFamily: designTokens.typography.fontFamily,
-            }}
-          >
-            {isPlaying ? (
-              <>
-                <div style={{ display: "flex", alignItems: "center", gap: 3, color: "#30d158" }}>
-                  <Music size={12} />
-                  <span style={{ fontSize: 10, maxWidth: 55, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {mediaTrack?.title || "Playing"}
-                  </span>
+        <AnimatePresence mode="wait">
+          {!isSetup && !isExpanded && !isDragMouth && !activeAlert && (
+            <motion.div
+              key="idle-resting-pill"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.08 }}
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: isPlaying ? "space-between" : (islandMode === "reserved" ? "center" : "space-between"),
+                padding: isPlaying ? "0 12px" : (islandMode === "reserved" ? "0 8px" : "0 12px"),
+                boxSizing: "border-box",
+                fontSize: 11.5,
+                fontWeight: 600,
+                fontFamily: designTokens.typography.fontFamily,
+                overflow: "hidden",
+              }}
+            >
+              {wakeHint ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", gap: 6, color: "rgba(255, 255, 255, 0.9)", fontSize: 11, fontWeight: 600 }}>
+                  <Sparkles size={12} color="#0a84ff" />
+                  <span>Move your mouse here anytime.</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <span style={{ width: 3, height: 7, background: "#30d158", borderRadius: 1 }} />
-                  <span style={{ width: 3, height: 11, background: "#30d158", borderRadius: 1 }} />
-                  <span style={{ width: 3, height: 5, background: "#30d158", borderRadius: 1 }} />
-                </div>
-              </>
-            ) : islandMode === "reserved" || islandSettings.style === "floating" ? (
-              islandSettings.mascotEyes ? (
-                <div
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 4,
-                      height: mascotBlink ? 1 : 5,
-                      borderRadius: 2,
-                      backgroundColor: "#ffffff",
-                      transition: "height 0.1s ease",
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: 4,
-                      height: mascotBlink ? 1 : 5,
-                      borderRadius: 2,
-                      backgroundColor: "#ffffff",
-                      transition: "height 0.1s ease",
-                    }}
-                  />
-                </div>
-              ) : (
-                /* Minimal notch sensor pill in reserved mode: NO duplicate clock, NO duplicate battery */
-                <div
-                  style={{
-                    width: 22,
-                    height: 3.5,
-                    borderRadius: 2,
-                    backgroundColor: "rgba(255, 255, 255, 0.16)",
-                    boxShadow: "0 0 1px rgba(255, 255, 255, 0.2)",
-                  }}
-                />
-              )
-            ) : (
-              /* Overlay mode: show clock on left and battery on right */
-              <>
-                <span style={{ letterSpacing: "-0.2px" }}>{currentTime}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 3, opacity: 0.8 }}>
-                    {batteryInfo.charging ? (
-                      <Zap size={12} color="#30d158" />
-                    ) : (
-                      <Battery size={12} color={batteryInfo.percent <= 20 ? "#ff453a" : "#ffffff"} />
-                    )}
-                    <span style={{ fontSize: 10.5 }}>{batteryInfo.percent}%</span>
+              ) : isPlaying ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 3, color: "#30d158" }}>
+                    <Music size={12} />
+                    <span style={{ fontSize: 10, maxWidth: 55, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {mediaTrack?.title || "Playing"}
+                    </span>
                   </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <span style={{ width: 3, height: 7, background: "#30d158", borderRadius: 1 }} />
+                    <span style={{ width: 3, height: 11, background: "#30d158", borderRadius: 1 }} />
+                    <span style={{ width: 3, height: 5, background: "#30d158", borderRadius: 1 }} />
+                  </div>
+                </>
+              ) : islandMode === "reserved" || islandSettings.style === "floating" ? (
+                islandSettings.mascotEyes ? (
+                  <div
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 4,
+                        height: mascotBlink ? 1 : 5,
+                        borderRadius: 2,
+                        backgroundColor: "#ffffff",
+                        transition: "height 0.1s ease",
+                      }}
+                    />
+                    <div
+                      style={{
+                        width: 4,
+                        height: mascotBlink ? 1 : 5,
+                        borderRadius: 2,
+                        backgroundColor: "#ffffff",
+                        transition: "height 0.1s ease",
+                      }}
+                    />
+                  </div>
+                ) : (
+                  /* Minimal notch sensor pill in reserved mode: NO duplicate clock, NO duplicate battery */
+                  <div
+                    style={{
+                      width: 22,
+                      height: 3.5,
+                      borderRadius: 2,
+                      backgroundColor: "rgba(255, 255, 255, 0.16)",
+                      boxShadow: "0 0 1px rgba(255, 255, 255, 0.2)",
+                    }}
+                  />
+                )
+              ) : (
+                /* Overlay mode: show clock on left and battery on right */
+                <>
+                  <span style={{ letterSpacing: "-0.2px" }}>{currentTime}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 3, opacity: 0.8 }}>
+                      {batteryInfo.charging ? (
+                        <Zap size={12} color="#30d158" />
+                      ) : (
+                        <Battery size={12} color={batteryInfo.percent <= 20 ? "#ff453a" : "#ffffff"} />
+                      )}
+                      <span style={{ fontSize: 10.5 }}>{batteryInfo.percent}%</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* --- STATE 3: EXPANDED DASHBOARD --- */}
-        {!isSetup && isExpanded && !isDragMouth && (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-              boxSizing: "border-box",
-              position: "relative",
-            }}
-          >
-            {/* Top Toolbar Navigation */}
+        <AnimatePresence mode="wait">
+          {!isSetup && isExpanded && !isDragMouth && (
+            <motion.div
+              key="expanded-dashboard"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{
+                opacity: { duration: 0.12, ease: "easeOut", delay: (islandSettings.reduceMotion || systemPrefersReducedMotion) ? 0 : 0.06 },
+                scale: { duration: 0.14, ease: "easeOut" },
+              }}
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                boxSizing: "border-box",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              {/* Top Toolbar Navigation */}
             <div
               style={{
                 display: "flex",
@@ -1191,8 +1342,9 @@ export default function Island() {
                 )}
               </ErrorBoundary>
             </div>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </motion.div>
     </div>
     </>

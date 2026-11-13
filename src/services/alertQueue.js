@@ -61,12 +61,32 @@ export class AlertQueue {
       return;
     }
 
-    const duration = (alert.duration || this.preferences.durationSec * 1000);
     const priority = alert.priority || 1;
+
+    // Obey Do Not Disturb: non-critical alerts (priority < 8) are silenced during DND
+    try {
+      if (typeof localStorage !== "undefined" && localStorage.getItem("aura_dnd") === "true") {
+        if (priority < 8) return;
+      }
+    } catch (_) {}
+
+    const duration = (alert.duration || this.preferences.durationSec * 1000);
     const alertId = alert.id || `${alert.type}-${Date.now()}`;
+
+    // Defend against extremely long alert text
+    let title = alert.title || "";
+    if (typeof title === "string" && title.length > 60) {
+      title = `${title.slice(0, 57)}...`;
+    }
+    let subtitle = alert.subtitle;
+    if (typeof subtitle === "string" && subtitle.length > 80) {
+      subtitle = `${subtitle.slice(0, 77)}...`;
+    }
 
     const newAlert = {
       ...alert,
+      title,
+      subtitle,
       id: alertId,
       duration,
       priority,

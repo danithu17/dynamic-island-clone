@@ -88,7 +88,7 @@ export default function LauncherDropdown({ onClose }) {
               cursor: "pointer",
               transition: "background 0.12s ease",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#0a84ff")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             <div
