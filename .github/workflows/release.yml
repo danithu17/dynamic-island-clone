@@ -1,0 +1,110 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release Aura Island
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Unit Tests
+        run: npm test
+
+      - name: Package Application
+        run: npm run package
+
+      - name: Run --selftest on Packaged Application
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path out -Filter "aura-island.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $exe) { throw "Packaged executable not found!" }
+          Write-Host "Running selftest on: $exe"
+          $proc = Start-Process -FilePath $exe -ArgumentList "--selftest" -Wait -PassThru -NoNewWindow
+          if ($proc.ExitCode -ne 0) {
+            throw "Selftest failed with exit code $($proc.ExitCode)"
+          }
+          Write-Host "Packaged selftest passed with exit code 0."
+
+      - name: Build Distributables & Installers
+        run: npm run make -- --skip-package
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      - name: Smoke Test Silent Installer & Uninstaller
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -Path out/make -Filter "*Setup*.exe" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          if ($installer) {
+            Write-Host "Running silent install smoke test for $installer"
+            $installDir = "C:\AuraTest"
+            Start-Process -FilePath $installer -ArgumentList "/S", "/D=$installDir" -Wait
+            Start-Sleep -Seconds 3
+
+            $installedExe = "$installDir\aura-island.exe"
+            if (Test-Path $installedExe) {
+              Write-Host "Running selftest on installed application..."
+              $smoke = Start-Process -FilePath $installedExe -ArgumentList "--selftest" -Wait -PassThru -NoNewWindow
+              Write-Host "Installed selftest exit code: $($smoke.ExitCode)"
+
+              $uninst = Get-ChildItem -Path $installDir -Filter "*uninstall*.exe" | Select-Object -First 1 -ExpandProperty FullName
+              if ($uninst) {
+                Write-Host "Running silent uninstaller..."
+                Start-Process -FilePath $uninst -ArgumentList "/S" -Wait
+                Start-Sleep -Seconds 3
+              }
+            }
+          }
+
+      - name: Generate SHA256 Checksums
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts
+          $files = Get-ChildItem -Path out/make -Include "*.exe","*.zip","*.yml","*.blockmap" -Recurse
+          foreach ($f in $files) {
+            Copy-Item $f.FullName -Destination artifacts/
+          }
+          Set-Location artifacts
+          $checksums = Get-ChildItem -File | ForEach-Object {
+            $hash = (Get-FileHash -Path $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)"
+          }
+          $checksums | Out-File -FilePath SHA256SUMS.txt -Encoding utf8
+          Get-Content SHA256SUMS.txt
+
+      - name: Check Pre-Release Status
+        id: check_beta
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $isBeta = $tag -match "beta"
+          Write-Host "Tag: $tag | Is Beta: $isBeta"
+          echo "is_prerelease=$isBeta" >> $env:GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          prerelease: ${{ steps.check_beta.outputs.is_prerelease == 'True' }}
+          generate_release_notes: true
+          name: Aura Island ${{ github.ref_name }}

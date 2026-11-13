@@ -1,96 +1,107 @@
 import React from "react";
-import { SettingsCard, SettingsRow, SegmentedControl } from "../components/SettingsUI";
-import { Moon, Palette, Type } from "lucide-react";
+import {
+  SettingsCard,
+  SettingsRow,
+  SegmentedControl,
+  ColorDots,
+  ToggleSwitch,
+  Dropdown,
+} from "../components/SettingsUI";
+import { Moon, Palette, Type, Clock } from "lucide-react";
 
-const ACCENT_COLORS = [
-  { label: "Blue", value: "#0a84ff" },
-  { label: "Purple", value: "#5e5ce6" },
-  { label: "Green", value: "#30d158" },
-  { label: "Orange", value: "#ff9f0a" },
-  { label: "Red", value: "#ff453a" },
-  { label: "Pink", value: "#bf5af2" },
-];
-
-export default function AppearanceSection({ settings, onUpdate }) {
+export default function AppearanceSection({ settings = {}, onUpdate, highlightedRow }) {
   const app = settings.appearance || {};
+
+  const fontOptions = [
+    { label: "Segoe UI Variable (Default)", value: "Segoe UI Variable" },
+    { label: "Segoe UI", value: "Segoe UI" },
+    { label: "Inter", value: "Inter" },
+    { label: "System UI", value: "system-ui" },
+  ];
 
   return (
     <div>
-      <SettingsCard title="Theme Mode" description="Choose how Aura Island adapts to your environment">
+      <SettingsCard title="Theme & Color" description="Customize background mode, accent highlights, and text size">
         <SettingsRow
+          id="theme"
+          highlight={highlightedRow === "theme"}
           icon={<Moon size={16} />}
           label="Interface Theme"
-          description="Select dark, light, or automatic system appearance"
+          description="Dark mode is enabled by default or can match Windows system settings"
           control={
             <SegmentedControl
               options={[
                 { label: "Dark", value: "dark" },
+                { label: "Match System", value: "match-system" },
                 { label: "Light", value: "light" },
-                { label: "Auto", value: "auto" },
               ]}
               value={app.theme || "dark"}
               onChange={(val) => onUpdate("appearance.theme", val)}
             />
           }
         />
-      </SettingsCard>
-
-      <SettingsCard title="Accent Color" description="Personalize status chips, active badges, and highlight colors">
         <SettingsRow
+          id="accentColor"
+          highlight={highlightedRow === "accentColor"}
           icon={<Palette size={16} />}
-          label="Theme Color"
-          description="Color applied to active states, audio wave bars, and buttons"
+          label="Accent Color"
+          description="Color applied to active tabs, scrubber handles, and toggle switches"
           control={
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {ACCENT_COLORS.map((col) => (
-                <button
-                  key={col.value}
-                  type="button"
-                  title={col.label}
-                  onClick={() => onUpdate("appearance.accentColor", col.value)}
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: "50%",
-                    background: col.value,
-                    border: (app.accentColor || "#0a84ff") === col.value ? "2px solid #ffffff" : "2px solid transparent",
-                    cursor: "pointer",
-                    outline: "none",
-                    boxShadow: (app.accentColor || "#0a84ff") === col.value ? `0 0 8px ${col.value}` : "none",
-                    transition: "transform 0.15s ease",
-                  }}
-                />
-              ))}
-            </div>
+            <ColorDots
+              value={app.accentColor || "#0a84ff"}
+              onChange={(val) => onUpdate("appearance.accentColor", val)}
+            />
+          }
+        />
+        <SettingsRow
+          id="textSize"
+          highlight={highlightedRow === "textSize"}
+          icon={<Type size={16} />}
+          label="Text Size"
+          description="Adjust overall text scaling across the island and dashboard"
+          control={
+            <SegmentedControl
+              options={[
+                { label: "Small", value: "small" },
+                { label: "Medium", value: "medium" },
+                { label: "Large", value: "large" },
+              ]}
+              value={app.textSize || "medium"}
+              onChange={(val) => onUpdate("appearance.textSize", val)}
+            />
+          }
+        />
+        <SettingsRow
+          id="largeClock"
+          highlight={highlightedRow === "largeClock"}
+          icon={<Clock size={16} />}
+          label="Large Clock on Home"
+          description="Display an expanded digital clock widget on the Home dashboard"
+          isLast
+          control={
+            <ToggleSwitch
+              checked={Boolean(app.largeClock)}
+              onChange={(val) => onUpdate("appearance.largeClock", val)}
+            />
           }
         />
       </SettingsCard>
 
-      <SettingsCard title="Typography" description="System font rendering and typography family">
+      <SettingsCard title="Typography Font" description="Crisp ClearType rendering on high-DPI displays">
         <SettingsRow
+          id="font"
+          highlight={highlightedRow === "font"}
           icon={<Type size={16} />}
           label="Font Family"
-          description="Windows 11 Segoe UI Variable is recommended for crisp ClearType rendering"
+          description="Windows 11 Segoe UI Variable provides optimal optical sizing"
+          isLast
           control={
-            <select
+            <Dropdown
+              options={fontOptions}
               value={app.font || "Segoe UI Variable"}
-              onChange={(e) => onUpdate("appearance.font", e.target.value)}
-              style={{
-                background: "rgba(255, 255, 255, 0.08)",
-                color: "#ffffff",
-                border: "1px solid rgba(255, 255, 255, 0.15)",
-                borderRadius: 6,
-                padding: "5px 10px",
-                fontSize: 12,
-                outline: "none",
-                cursor: "pointer",
-              }}
-            >
-              <option value="Segoe UI Variable" style={{ background: "#222" }}>Segoe UI Variable (Recommended)</option>
-              <option value="Segoe UI" style={{ background: "#222" }}>Segoe UI</option>
-              <option value="Inter" style={{ background: "#222" }}>Inter</option>
-              <option value="system-ui" style={{ background: "#222" }}>System UI Default</option>
-            </select>
+              width={200}
+              onChange={(val) => onUpdate("appearance.font", val)}
+            />
           }
         />
       </SettingsCard>

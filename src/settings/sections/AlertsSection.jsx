@@ -1,22 +1,118 @@
 import React from "react";
-import { SettingsCard, SettingsRow, ToggleSwitch } from "../components/SettingsUI";
-import { Bell, Volume2, Battery, Download, Timer, Wifi, Bluetooth } from "lucide-react";
+import {
+  SettingsCard,
+  SettingsRow,
+  ToggleSwitch,
+  SliderWithValue,
+  Stepper,
+  TextField,
+} from "../components/SettingsUI";
+import {
+  Bell,
+  Volume2,
+  VolumeX,
+  BatteryCharging,
+  Camera,
+  Download,
+  Timer,
+  Mail,
+  Bot,
+  Usb,
+  Sliders,
+  Moon,
+} from "lucide-react";
+import { getTranslation } from "../../locales/translations";
 
-export default function AlertsSection({ settings, onUpdate }) {
+export default function AlertsSection({ settings = {}, onUpdate, highlightedRow }) {
   const al = settings.alerts || {};
   const types = al.types || {};
+  const dnd = al.dndSchedule || { enabled: false, startTime: "22:00", endTime: "07:00" };
+  const currentLang = settings.general?.language || "en";
+  const t = getTranslation(currentLang).alerts;
 
-  const handleTypeToggle = (key, val) => {
-    onUpdate(`alerts.types.${key}`, val);
+  const updateTypeProperty = (typeKey, prop, val) => {
+    const curr = typeof types[typeKey] === "object" ? types[typeKey] : { enabled: Boolean(types[typeKey]) };
+    const updated = { ...curr, [prop]: val };
+    onUpdate(`alerts.types.${typeKey}`, updated);
+
+    // Also update legacy flat boolean keys for backwards-compatibility
+    if (prop === "enabled") {
+      if (typeKey === "charging" || typeKey === "battery") onUpdate("alerts.types.battery", val);
+      if (typeKey === "timer") onUpdate("alerts.types.timers", val);
+      if (typeKey === "downloads") onUpdate("alerts.types.downloads", val);
+      if (typeKey === "volumeHud") onUpdate("alerts.types.volume", val);
+    }
   };
+
+  const alertDefinitions = [
+    {
+      key: "charging",
+      label: t.types.charging,
+      desc: t.types.chargingDesc,
+      icon: <BatteryCharging size={16} />,
+      defaultDuration: 4,
+    },
+    {
+      key: "screenshots",
+      label: t.types.screenshots,
+      desc: t.types.screenshotsDesc,
+      icon: <Camera size={16} />,
+      defaultDuration: 4,
+    },
+    {
+      key: "downloads",
+      label: t.types.downloads,
+      desc: t.types.downloadsDesc,
+      icon: <Download size={16} />,
+      defaultDuration: 4,
+    },
+    {
+      key: "timer",
+      label: t.types.timer,
+      desc: t.types.timerDesc,
+      icon: <Timer size={16} />,
+      defaultDuration: 5,
+    },
+    {
+      key: "gmail",
+      label: t.types.gmail,
+      desc: t.types.gmailDesc,
+      icon: <Mail size={16} />,
+      defaultDuration: 4,
+    },
+    {
+      key: "aiAgent",
+      label: t.types.aiAgent,
+      desc: t.types.aiAgentDesc,
+      icon: <Bot size={16} />,
+      defaultDuration: 4,
+    },
+    {
+      key: "usbDevices",
+      label: t.types.usbDevices,
+      desc: t.types.usbDevicesDesc,
+      icon: <Usb size={16} />,
+      defaultDuration: 4,
+    },
+    {
+      key: "volumeHud",
+      label: t.types.volumeHud,
+      desc: t.types.volumeHudDesc,
+      icon: <Sliders size={16} />,
+      defaultDuration: 2,
+    },
+  ];
 
   return (
     <div>
-      <SettingsCard title="Smart Alerts Master Control" description="Live Island notifications for system events and hardware actions">
+      {/* Master Control */}
+      <SettingsCard title="Smart Alerts Master Control" description="Live expanding notifications for system events and background tasks">
         <SettingsRow
+          id="alertsMaster"
+          highlight={highlightedRow === "alertsMaster"}
           icon={<Bell size={16} />}
-          label="Enable Smart Alerts"
-          description="Display live pill animations when system events occur"
+          label={t.master}
+          description={t.masterDesc}
           control={
             <ToggleSwitch
               checked={al.enabled !== false}
@@ -24,30 +120,29 @@ export default function AlertsSection({ settings, onUpdate }) {
             />
           }
         />
-
         <SettingsRow
-          label={`Alert Display Duration: ${al.duration || 4} seconds`}
-          description="How long notification pills remain expanded before receding"
+          id="alertsDuration"
+          highlight={highlightedRow === "alertsDuration"}
+          label="Default Alert Duration"
+          description="Default seconds alerts stay on-screen before smooth collapse"
           control={
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <input
-                type="range"
-                min={2}
-                max={12}
-                step={1}
-                value={al.duration || 4}
-                onChange={(e) => onUpdate("alerts.duration", parseInt(e.target.value, 10))}
-                style={{ width: 130, cursor: "pointer", accentColor: "#0a84ff" }}
-              />
-              <span style={{ fontSize: 12, minWidth: 32, opacity: 0.8 }}>{al.duration || 4}s</span>
-            </div>
+            <SliderWithValue
+              min={1}
+              max={15}
+              step={1}
+              unit="s"
+              value={typeof al.duration === "number" ? al.duration : 4}
+              onChange={(val) => onUpdate("alerts.duration", val)}
+            />
           }
         />
-
         <SettingsRow
+          id="alertsSounds"
+          highlight={highlightedRow === "alertsSounds"}
           icon={<Volume2 size={16} />}
-          label="Notification Sound Effects"
-          description="Play a subtle audio chime when critical alerts trigger"
+          label="Global Sound Effects"
+          description="Play a calm audio tone when alerts appear"
+          isLast
           control={
             <ToggleSwitch
               checked={Boolean(al.sounds)}
@@ -57,78 +152,110 @@ export default function AlertsSection({ settings, onUpdate }) {
         />
       </SettingsCard>
 
-      <SettingsCard title="Per-Type Notification Filters" description="Choose which system events trigger Dynamic Island animations">
+      {/* Do Not Disturb Schedule */}
+      <SettingsCard title="Do Not Disturb Schedule" description="Automatically silence notifications during your focused hours">
         <SettingsRow
-          icon={<Battery size={16} />}
-          label="Battery & Power State"
-          description="Charging plugged/unplugged, low battery warnings (20% and 10%)"
+          id="dndEnabled"
+          highlight={highlightedRow === "dndEnabled"}
+          icon={<Moon size={16} />}
+          label={t.dndSchedule}
+          description={t.dndScheduleDesc}
           control={
             <ToggleSwitch
-              checked={types.battery !== false}
-              onChange={(val) => handleTypeToggle("battery", val)}
+              checked={Boolean(dnd.enabled)}
+              onChange={(val) => onUpdate("alerts.dndSchedule.enabled", val)}
             />
           }
         />
+        {dnd.enabled && (
+          <>
+            <SettingsRow
+              id="dndStartTime"
+              label={t.startTime}
+              description="When Do Not Disturb turns on automatically"
+              control={
+                <TextField
+                  value={dnd.startTime || "22:00"}
+                  width={100}
+                  onChange={(val) => onUpdate("alerts.dndSchedule.startTime", val)}
+                />
+              }
+            />
+            <SettingsRow
+              id="dndEndTime"
+              label={t.endTime}
+              description="When Do Not Disturb turns off in the morning"
+              isLast
+              control={
+                <TextField
+                  value={dnd.endTime || "07:00"}
+                  width={100}
+                  onChange={(val) => onUpdate("alerts.dndSchedule.endTime", val)}
+                />
+              }
+            />
+          </>
+        )}
+      </SettingsCard>
 
-        <SettingsRow
-          icon={<Download size={16} />}
-          label="Download Completions"
-          description="Browser downloads finished in your Downloads folder"
-          control={
-            <ToggleSwitch
-              checked={types.downloads !== false}
-              onChange={(val) => handleTypeToggle("downloads", val)}
-            />
-          }
-        />
+      {/* Individual Alert Types */}
+      <SettingsCard title="Alert Channels & Per-Type Tuning" description="Configure duration, chime sound, and visibility for each alert type">
+        {alertDefinitions.map((def, idx) => {
+          const raw = types[def.key];
+          const isEnabled = typeof raw === "object" ? raw.enabled !== false : raw !== false;
+          const duration = typeof raw === "object" && typeof raw.duration === "number" ? raw.duration : def.defaultDuration;
+          const hasSound = typeof raw === "object" ? Boolean(raw.sound) : false;
 
-        <SettingsRow
-          icon={<Timer size={16} />}
-          label="Focus Timers & Alarms"
-          description="Timer countdown completion and interval alerts"
-          control={
-            <ToggleSwitch
-              checked={types.timers !== false}
-              onChange={(val) => handleTypeToggle("timers", val)}
-            />
-          }
-        />
+          return (
+            <SettingsRow
+              key={def.key}
+              id={def.key}
+              highlight={highlightedRow === def.key}
+              icon={def.icon}
+              label={def.label}
+              description={def.desc}
+              isLast={idx === alertDefinitions.length - 1}
+              control={
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  {/* Sound icon toggle button */}
+                  <button
+                    type="button"
+                    title={hasSound ? "Sound chime enabled" : "Muted (silent)"}
+                    aria-label={`Toggle sound for ${def.label}`}
+                    onClick={() => updateTypeProperty(def.key, "sound", !hasSound)}
+                    style={{
+                      background: hasSound ? "rgba(10, 132, 255, 0.2)" : "rgba(255, 255, 255, 0.08)",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "6px 8px",
+                      color: hasSound ? "#64d2ff" : "rgba(255, 255, 255, 0.4)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {hasSound ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                  </button>
 
-        <SettingsRow
-          icon={<Wifi size={16} />}
-          label="Wi-Fi Network Events"
-          description="Network connected, disconnected, and roaming changes"
-          control={
-            <ToggleSwitch
-              checked={types.wifi !== false}
-              onChange={(val) => handleTypeToggle("wifi", val)}
-            />
-          }
-        />
+                  {/* Duration stepper */}
+                  <Stepper
+                    min={1}
+                    max={12}
+                    unit="s"
+                    value={duration}
+                    onChange={(val) => updateTypeProperty(def.key, "duration", val)}
+                  />
 
-        <SettingsRow
-          icon={<Bluetooth size={16} />}
-          label="Bluetooth Peripherals"
-          description="Headphones, mouse, and keyboard connection alerts"
-          control={
-            <ToggleSwitch
-              checked={types.bluetooth !== false}
-              onChange={(val) => handleTypeToggle("bluetooth", val)}
+                  {/* Toggle switch (51x31) */}
+                  <ToggleSwitch
+                    checked={isEnabled}
+                    onChange={(val) => updateTypeProperty(def.key, "enabled", val)}
+                  />
+                </div>
+              }
             />
-          }
-        />
-
-        <SettingsRow
-          icon={<Volume2 size={16} />}
-          label="Hardware Volume Keys"
-          description="Show pill HUD when hardware volume keys are pressed"
-          control={
-            <ToggleSwitch
-              checked={types.volume !== false}
-              onChange={(val) => handleTypeToggle("volume", val)}
-            />
-          }
-        />
+          );
+        })}
       </SettingsCard>
     </div>
   );

@@ -95,8 +95,8 @@ function openSettingsWindow(section = "general") {
   }
 
   const windowState = settingsStore.get("windowState") || {};
-  const width = Math.max(820, windowState.width || 960);
-  const height = Math.max(560, windowState.height || 640);
+  const width = Math.max(760, windowState.width || 880);
+  const height = Math.max(520, windowState.height || 620);
 
   let x = windowState.x;
   let y = windowState.y;
@@ -123,11 +123,12 @@ function openSettingsWindow(section = "general") {
     height,
     x,
     y,
-    minWidth: 820,
-    minHeight: 560,
+    minWidth: 760,
+    minHeight: 520,
     title: "Aura Island Settings",
     backgroundColor: "#16171b",
     backgroundMaterial: "mica", // Windows 11 mica/acrylic effect
+    darkTheme: true,
     autoHideMenuBar: true,
     skipTaskbar: false,
     focusable: true,

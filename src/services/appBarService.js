@@ -863,6 +863,10 @@ class AppBarService {
                 this.notifyKeyboardControl("voldown");
               } else if (vk === 0xAD) {
                 this.notifyKeyboardControl("mute");
+              } else if (vk === 0xD8 || vk === 0xE0) {
+                this.notifyKeyboardControl("brightnessup");
+              } else if (vk === 0xD9 || vk === 0xE1) {
+                this.notifyKeyboardControl("brightnessdown");
               } else if (vk === 0xCD) {
                 this.notifyKeyboardControl("playpause");
               } else if (vk === 0xB0) {
@@ -884,11 +888,18 @@ class AppBarService {
   }
 
   notifyKeyboardControl(action) {
+    if (this.onHardwareControl) {
+      try {
+        this.onHardwareControl(action);
+      } catch (_) {}
+    }
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       try {
         if (["volup", "voldown", "mute"].includes(action)) {
           this.mainWindow.webContents.send("alert:volume-change", { action });
           this.mainWindow.webContents.send("menubar:volume-change", { action });
+        } else if (["brightnessup", "brightnessdown"].includes(action)) {
+          this.mainWindow.webContents.send("alert:brightness-change", { action });
         } else if (["playpause", "next", "previous"].includes(action)) {
           this.mainWindow.webContents.send("menubar:media-change", { command: action });
         }

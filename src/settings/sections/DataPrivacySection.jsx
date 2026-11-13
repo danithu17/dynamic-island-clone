@@ -1,42 +1,48 @@
 import React, { useState } from "react";
-import { SettingsCard, SettingsRow, SettingsButton } from "../components/SettingsUI";
-import { Trash2, Download, Upload, RefreshCw, Check, ShieldAlert } from "lucide-react";
+import {
+  SettingsCard,
+  SettingsRow,
+  SettingsButton,
+  InlineConfirmSheet,
+} from "../components/SettingsUI";
+import {
+  ShieldCheck,
+  ShieldAlert,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Check,
+  Download,
+  Upload,
+} from "lucide-react";
+import { getTranslation } from "../../locales/translations";
 
-export default function DataPrivacySection({ settings, onResetAll }) {
+export default function DataPrivacySection({ settings = {}, onResetAll, highlightedRow }) {
   const [clearedNotice, setClearedNotice] = useState("");
+  const [isDeleteSheetOpen, setIsDeleteSheetOpen] = useState(false);
+
+  const currentLang = settings.general?.language || "en";
+  const t = getTranslation(currentLang).privacy;
 
   const showCleared = (msg) => {
     setClearedNotice(msg);
     setTimeout(() => setClearedNotice(""), 3000);
   };
 
-  const handleClearShelf = () => {
-    if (window.confirm("Clear all staged files from the Shelf?")) {
-      if (window.electronAPI?.clearShelf) {
-        window.electronAPI.clearShelf().then(() => showCleared("Shelf cleared!"));
+  const handleDeleteAllData = async () => {
+    setIsDeleteSheetOpen(false);
+    try {
+      if (window.electronAPI?.deleteAllUserData) {
+        await window.electronAPI.deleteAllUserData();
       } else {
-        showCleared("Shelf cleared!");
+        if (window.electronAPI?.clearShelf) await window.electronAPI.clearShelf();
+        if (window.electronAPI?.clearClipboardHistory) await window.electronAPI.clearClipboardHistory();
+        if (window.electronAPI?.clearNotes) await window.electronAPI.clearNotes();
+        if (window.electronAPI?.resetAllSettings) await window.electronAPI.resetAllSettings();
       }
-    }
-  };
-
-  const handleClearClipboard = () => {
-    if (window.confirm("Permanently erase saved clipboard history?")) {
-      if (window.electronAPI?.clearClipboardHistory) {
-        window.electronAPI.clearClipboardHistory().then(() => showCleared("Clipboard history cleared!"));
-      } else {
-        showCleared("Clipboard history cleared!");
-      }
-    }
-  };
-
-  const handleClearNotes = () => {
-    if (window.confirm("Permanently erase all notes from the scratchpad?")) {
-      if (window.electronAPI?.clearNotes) {
-        window.electronAPI.clearNotes().then(() => showCleared("Notes cleared!"));
-      } else {
-        showCleared("Notes cleared!");
-      }
+      showCleared("All local data has been permanently deleted.");
+    } catch (_) {
+      showCleared("Data clearance finished.");
     }
   };
 
@@ -66,7 +72,7 @@ export default function DataPrivacySection({ settings, onResetAll }) {
           }
         }
       } catch (err) {
-        alert("Invalid settings JSON file: " + err.message);
+        showCleared("Failed to parse settings JSON");
       }
     };
     reader.readAsText(file);
@@ -94,83 +100,112 @@ export default function DataPrivacySection({ settings, onResetAll }) {
         </div>
       )}
 
-      <SettingsCard title="Local Cache & Data Clearance" description="Clean temporary local storage and private buffers">
-        <SettingsRow
-          icon={<Trash2 size={16} />}
-          label="Clear Shelf Storage"
-          description="Remove all staged file pointers and drag-and-drop items"
-          control={<SettingsButton label="Clear Shelf" variant="danger" onClick={handleClearShelf} />}
-        />
-
-        <SettingsRow
-          icon={<Trash2 size={16} />}
-          label="Clear Clipboard History"
-          description="Erase all stored snippets and clipboard memory"
-          control={<SettingsButton label="Clear History" variant="danger" onClick={handleClearClipboard} />}
-        />
-
-        <SettingsRow
-          icon={<Trash2 size={16} />}
-          label="Clear Quick Notes"
-          description="Delete all scratchpad text and draft notes"
-          control={<SettingsButton label="Clear Notes" variant="danger" onClick={handleClearNotes} />}
-        />
+      {/* What Aura Island Reads */}
+      <SettingsCard title={t.readsTitle} description={t.readsDesc}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "8px 0" }}>
+          {t.readsItems.map((item, idx) => (
+            <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <CheckCircle2 size={15} style={{ color: "#30d158", marginTop: 2, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.85)", lineHeight: 1.4 }}>
+                {item}
+              </span>
+            </div>
+          ))}
+        </div>
       </SettingsCard>
 
-      <SettingsCard title="Backup & Restore" description="Export and import your complete Aura Island configuration">
-        <SettingsRow
-          icon={<Download size={16} />}
-          label="Export Settings"
-          description="Save preferences, shortcuts, and custom profiles to a JSON file"
-          control={<SettingsButton label="Export JSON" onClick={handleExport} />}
-        />
+      {/* What Aura Island NEVER Does */}
+      <SettingsCard title={t.neverTitle} description={t.neverDesc}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "8px 0" }}>
+          {t.neverItems.map((item, idx) => (
+            <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <XCircle size={15} style={{ color: "#0a84ff", marginTop: 2, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.85)", lineHeight: 1.4 }}>
+                {item}
+              </span>
+            </div>
+          ))}
+        </div>
+      </SettingsCard>
 
+      {/* Data Management & Deletion */}
+      <SettingsCard title={t.deleteTitle} description={t.deleteDesc}>
         <SettingsRow
-          icon={<Upload size={16} />}
-          label="Import Settings"
-          description="Restore previously exported settings file"
+          id="deleteData"
+          highlight={highlightedRow === "deleteData"}
+          icon={<ShieldAlert size={16} />}
+          label="Erase Local Identity & History"
+          description="Wipes clipboard history, notes, shelf items, and restores defaults"
+          isDanger
           control={
-            <label
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "6px 14px",
-                borderRadius: 7,
-                background: "rgba(255, 255, 255, 0.08)",
-                color: "#ffffff",
-                border: "1px solid rgba(255, 255, 255, 0.12)",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              <span>Choose File</span>
-              <input type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
+            <SettingsButton
+              variant="danger"
+              icon={<Trash2 size={13} />}
+              label={t.deleteButton}
+              onClick={() => setIsDeleteSheetOpen(true)}
+            />
+          }
+        />
+        <SettingsRow
+          id="exportSettings"
+          icon={<Download size={16} />}
+          label="Export Configuration Backup"
+          description="Download your preferences as a portable JSON file"
+          control={
+            <SettingsButton
+              icon={<Download size={13} />}
+              label="Export Settings"
+              onClick={handleExport}
+            />
+          }
+        />
+        <SettingsRow
+          id="importSettings"
+          icon={<Upload size={16} />}
+          label="Restore from Backup"
+          description="Load preferences from a previously saved JSON file"
+          isLast
+          control={
+            <label style={{ display: "inline-flex", cursor: "pointer" }}>
+              <input
+                type="file"
+                accept=".json"
+                style={{ display: "none" }}
+                onChange={handleImport}
+              />
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  background: "rgba(255, 255, 255, 0.08)",
+                  color: "#ffffff",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                }}
+              >
+                <Upload size={13} />
+                <span>Import JSON</span>
+              </span>
             </label>
           }
         />
       </SettingsCard>
 
-      <SettingsCard title="Factory Reset" description="Erase all customizations and restore factory settings">
-        <SettingsRow
-          icon={<ShieldAlert size={16} />}
-          isDanger
-          label="Reset All Settings"
-          description="Restores all 10 configuration categories to default values immediately"
-          control={
-            <SettingsButton
-              label="Reset All"
-              variant="danger"
-              onClick={() => {
-                if (window.confirm("Are you sure you want to restore ALL Aura Island settings to default?")) {
-                  onResetAll?.();
-                }
-              }}
-            />
-          }
-        />
-      </SettingsCard>
+      {/* Inline Confirm Sheet for Delete All Data */}
+      <InlineConfirmSheet
+        isOpen={isDeleteSheetOpen}
+        title={t.deleteConfirmTitle}
+        message={t.deleteConfirmMessage}
+        confirmLabel={t.deleteConfirmButton}
+        cancelLabel="Cancel"
+        isDanger
+        onConfirm={handleDeleteAllData}
+        onCancel={() => setIsDeleteSheetOpen(false)}
+      />
     </div>
   );
 }

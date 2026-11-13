@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setAutoLaunch: (enable) => ipcRenderer.invoke("set-auto-launch", enable),
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),
   openExternal: (url) => ipcRenderer.invoke("open-external", url),
+  checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
 
   // Menu Profiles APIs
   getAppMenuProfiles: () => ipcRenderer.invoke("appmenu:get-profiles"),
@@ -35,6 +36,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   clearShelf: () => ipcRenderer.invoke("shelf:clear"),
   clearClipboardHistory: () => ipcRenderer.invoke("clipboard:clear"),
   clearNotes: () => ipcRenderer.invoke("notes:clear"),
+  deleteAllUserData: () => ipcRenderer.invoke("app:delete-all-data"),
+  runSetupAgain: () => ipcRenderer.invoke("setup:run-again"),
 
   platform: "win32",
 });

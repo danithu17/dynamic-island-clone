@@ -25,9 +25,36 @@ export default function ControlCenter({ mediaTrack, onClose }) {
   const [bluetoothEnabled, setBluetoothEnabled] = useState(true);
   const [dndEnabled, setDndEnabled] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
-  const [brightness, setBrightness] = useState(85);
-  const [volume, setVolume] = useState(72);
+  const [brightness, setBrightness] = useState(75);
+  const [volume, setVolume] = useState(70);
   const [isMuted, setIsMuted] = useState(false);
+
+  // Sync real Windows brightness and volume
+  useEffect(() => {
+    window.electronAPI?.getSystemBrightness?.().then((bri) => {
+      if (typeof bri === "number") setBrightness(bri);
+    });
+    window.electronAPI?.getSystemVolume?.().then((res) => {
+      if (res && typeof res.volume === "number") {
+        setVolume(res.volume);
+        setIsMuted(Boolean(res.isMuted));
+      }
+    });
+
+    const unsubVol = window.electronAPI?.onVolumeChange?.((data) => {
+      if (typeof data?.volume === "number") setVolume(data.volume);
+      if (typeof data?.isMuted === "boolean") setIsMuted(data.isMuted);
+    });
+
+    const unsubBri = window.electronAPI?.onBrightnessChange?.((data) => {
+      if (typeof data?.brightness === "number") setBrightness(data.brightness);
+    });
+
+    return () => {
+      unsubVol?.();
+      unsubBri?.();
+    };
+  }, []);
 
   const isPlaying = mediaTrack?.state === "playing";
 
@@ -35,15 +62,16 @@ export default function ControlCenter({ mediaTrack, onClose }) {
     window.electronAPI?.controlSystemMedia?.(command);
   };
 
+  const handleBrightnessChange = (newVal) => {
+    const val = Number(newVal);
+    setBrightness(val);
+    window.electronAPI?.setSystemBrightness?.(val);
+  };
+
   const handleVolumeChange = (newVal) => {
     const val = Number(newVal);
-    const diff = val - volume;
     setVolume(val);
-    if (diff > 0) {
-      window.electronAPI?.controlSystemVolume?.("volup");
-    } else if (diff < 0) {
-      window.electronAPI?.controlSystemVolume?.("voldown");
-    }
+    window.electronAPI?.setSystemVolume?.(val);
   };
 
   const toggleMute = () => {
@@ -257,7 +285,7 @@ export default function ControlCenter({ mediaTrack, onClose }) {
               min="10"
               max="100"
               value={brightness}
-              onChange={(e) => setBrightness(Number(e.target.value))}
+              onChange={(e) => handleBrightnessChange(e.target.value)}
               style={{
                 flex: 1,
                 accentColor: "#0a84ff",

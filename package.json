@@ -1,7 +1,7 @@
 {
   "name": "aura-island",
   "productName": "Aura Island",
-  "version": "5.5.1",
+  "version": "1.0.0",
   "description": "An island-style notch widget for Windows",
   "main": ".vite/build/main.js",
   "scripts": {
@@ -36,16 +36,20 @@
     "directories": {
       "output": "dist"
     },
+    "asar": true,
+    "compression": "maximum",
     "win": {
       "target": [
-        "nsis"
+        "nsis",
+        "zip"
       ],
       "icon": "src/assets/icons/icon.ico",
       "artifactName": "AuraIsland-Windows-v${version}-Setup.${ext}"
     },
     "nsis": {
       "oneClick": true,
-      "perMachine": false,
+      "perMachine": true,
+      "runAfterFinish": false,
       "allowToChangeInstallationDirectory": false,
       "installerIcon": "src/assets/icons/icon.ico",
       "uninstallerIcon": "src/assets/icons/icon.ico",

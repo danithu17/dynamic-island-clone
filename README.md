@@ -1,188 +1,113 @@
-# Quick Pill
+# Aura Island
 
-**Dynamic Island, but for everyone**
+**The elegant, Dynamic Island productivity hub for Windows 10 & 11**
 
-Quick Pill is a desktop application that recreates Apple's Dynamic Island experience on Windows. It's a notification hub, widget system, and smart assistant that stays out of your way until you need it.
+Aura Island brings the refined Dynamic Island experience to Windows. It rests quietly at the top of your display as an unobtrusive notch or floating capsule, morphing fluidly into an expansive notification hub, media controller, file staging shelf, and widget dashboard when you need it.
 
 <div align="center">
 
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-5.5.1-blue)](package.json)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/badge/Release-v1.0.0-green.svg)](https://github.com/nabil24024004/Quick-Pill-Dynamic-Island-for-Windows/releases)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-lightgrey.svg)](https://www.microsoft.com/windows)
 
 https://github.com/user-attachments/assets/bd057d18-f65e-4cf4-bf66-a5d107f18658
-
-
 
 </div>
 
 ---
 
-## Features
+## Highlights & Features
 
-### Core Functionality
-- **Persistent Always-On-Top** — Elevated screen-saver priority that retains focus across multi-window switching and full-screen apps
-- **Multi-Monitor & Desktop Support** — Island syncs seamlessly across all desktops and monitors
-- **Dynamic Stadium Pill Physics** — Smooth Framer Motion spring morphing (`stiffness: 340, damping: 28`) between Still (semicircular 20px pill) and Large modes (32px pill) with boundary-confined page transitions
-- **Media Controls & Clean Titles** — Now playing preview with clean app naming (Spotify/Apple Music) and un-cropped marquee titles
-- **Quick App Launcher & Workspace Switcher (Tab 14)** — Search and launch installed Windows applications with real icons, switch running application windows with native Win32 window restoration, pin favorites, and switch contextual productivity workspaces with launch profiles and preview safety
-- **Quick Notes & Contextual Capture (Tab 15)** — Instant quick-capture composer with debounced autosave and crash recovery, searchable notes inbox with tags and filters, contextual clipboard capture with large-content guard, and non-destructive note-to-task conversion
-- **Per-App Audio Mixer (Tab 12)** — Native Windows Core Audio WASAPI mixer to control individual application volume levels, mute/unmute apps, inspect real-time peak audio indicators, and select active audio endpoints
-- **Universal Progress Island (Tab 13)** — Intelligent background operations consolidation layer tracking file copying/hashing, download tasks, and app update progress directly in the Dynamic Island
-- **Customizable Themes** — Multiple themes including Win95, SleekBlack, and custom RGB colors
-- **Quick Apps** — One-click access to 4 apps of your choice
-- **Keyboard Shortcuts** — Quick navigation with `Ctrl + [Number]` shortcuts
+### 1. Dual Geometry & Personality
+- **Seamless Bezel Notch**: Docked flush against the top display bezel with smooth concave ear fillets.
+- **Floating Pill**: A detached stadium pill floating elegantly just below the top bezel.
+- **Interactive Mascot Eyes**: Subtle, animated blinking eyes that keep you company in idle mode.
+- **Sub-Pixel Spring Physics**: High-fidelity Framer Motion physics (`stiffness: 350, damping: 28`) tuned for zero-jitter morphing.
 
-### Information & Alerts
-- **Smart Notification Actions (Tab 5)** — Real app icons, WhatsApp/VoIP call cards with answer/dismiss actions, inline replies, local snooze presets (5m, 15m, 30m, 1h), grouped multi-message stacks, low-priority collapsing, privacy preview masking, and dismissal undo buffer
-- **Apple Battery Hub (Tab 11)** — Dynamic Island battery dashboard with 60 FPS right-to-left fluid liquid wave canvas engine, buoyant micro-bubbles, discharge drain metrics, and duration estimation
-- **Weather Display (Tab 1)** — Real-time weather information & forecasts
-- **Battery Alerts** — Charging status and low battery notifications
-- **Hardware & System Alerts** — Real-time CPU/RAM stats, USB connection alerts, Bluetooth, and Keyboard lock (Caps/Num/Scroll) indicators
+### 2. First-Run Setup in the Notch
+- **No Popup Windows**: The entire 7-step onboarding happens directly inside the notch with smooth blur-in transitions.
+- **Live Style Selection**: Preview and morph the real island in real time.
+- **Drag & Drop Swallow**: Learn file drag-and-drop staging interactively.
 
-### Smart Features & Productivity
-- **Lock-Screen & Background Timers (Tab 10)** — Wall-clock synchronized countdown timers that continue without pausing when Windows locks or goes to sleep
-- **Silent Background Updates** — Automatically detects, downloads, and silently installs updates via NSIS with configurable settings
-- **Minimalist Tasks Manager (Tab 8)** — Apple / Things 3 style task list with circular check buttons, smooth scrolling, and single-capsule input bar
-- **Timer & Presets (Tab 10)** — Quick preset timer chips (15m, 30m, 60m, 100m) and custom time picker
-- **Browser Search (Tab 0)** — Instant web search integration
-- **Clipboard Manager (Tab 7)** — Access and manage your copied text snippets
-- **Compact Calendar (Tab 4)** — Monthly interactive calendar with zero-margin height optimization
+### 3. Dedicated Settings App (macOS System Settings Style)
+- **Standalone Window**: Opened via `Ctrl+Alt+,`, tray icon, or the island header; single-instance focused.
+- **Windows 11 Mica & Immersive Dark Mode**: Native taskbar entry, dark title bar, and acrylic/mica backdrop.
+- **15 Structured Sections**: General, Island, Appearance, Alerts, Home & Dock, Clipboard, Tray, Notes & Snippets, Accounts, Focus & Timer, Shortcuts, Privacy, Updates, Advanced, and About.
+- **Global Instant Search**: Search any setting row with automatic scrolling and highlight pulse.
+- **Instant Live Apply**: All preference updates apply immediately over IPC without a Save button.
 
----
+### 4. Smart Alerts & Live Activities
+- **Per-Event Tuning**: Configurable durations and mute options for Battery/Power, Screenshots, Browser Downloads, Timers, Gmail, AI Assistant, USB Devices, and Volume HUD.
+- **Do Not Disturb**: Schedule quiet hours to silence non-critical notifications.
+- **Drag-to-Shelf Swallow Mouth**: Drag any file to the top of your monitor to stage it on the Shelf, attach to Mail, or beam to Phone.
 
-## Quick Start
-
-### Installation
-
-Download the latest release for your platform:
-- **Windows**: `.exe` installer
-
-**[Download Latest Release](https://quickpill.neosparkx.com/)**
-
-### First Run
-1. Install and launch Quick Pill
-2. The Island will appear on your screen
-3. **Click** the Island to open Large Mode
-4. **Hover** over it to see Quick Mode
-5. Visit **Settings** (last tab) to customize everything
+### 5. Privacy by Design
+- **100% Local Processing**: No remote telemetry, no external trackers, no keystroke tracking.
+- **Password Manager Guard**: Automatically ignores clips copied from 1Password, Bitwarden, and KeePass.
+- **Credential Protection**: Google OAuth tokens and AI API keys are stored in the Windows Credential Store (DPAPI / safeStorage); never saved in plain JSON.
+- **Atomic Persistence**: Configurations saved with atomic temporary files and `.bak` corrupt fallbacks.
 
 ---
 
-## How to Use
+## Installation
 
-### The Three Modes
+### Method 1: Installer (Recommended)
+1. Download `AuraIsland-Setup-1.0.0.exe` from [GitHub Releases](https://github.com/nabil24024004/Quick-Pill-Dynamic-Island-for-Windows/releases).
+2. Run the installer. Aura Island installs cleanly to `C:\Program Files\Aura Island` and automatically starts in first-run guided mode.
 
-**Still Mode** — The default idle state
-- Compact display
-- Minimal visual footprint
-- Ready to expand on interaction
+> [!NOTE]
+> **Windows SmartScreen Note for Unsigned Builds:**
+> If Windows SmartScreen displays *"Windows protected your PC"*, click **"More info"** and then select **"Run anyway"**. Aura Island is 100% open-source software and contains zero telemetry or trackers.
 
-**Quick Mode** — Hover over the Island
-- See current time, weather, and battery status
-- If music is playing, view now-playing info
-- Hover playback controls for music
-
-**Large Mode** — Click the Island
-- Full interface with all tabs
-- Switch tabs with arrow keys or mouse scroll
-- Access all features and settings
-- Default view for focused work
-
-### Using Tabs
-- **Arrow Keys** — Navigate between tabs
-- **Mouse Wheel** — Scroll horizontally between tabs
-- **Ctrl + Number** — Jump to a specific tab
-
+### Method 2: Portable ZIP
+1. Download `AuraIsland-1.0.0-portable.zip`.
+2. Extract to your preferred location and run `aura-island.exe`.
 
 ---
 
-## Per-App Menu Profiles
+## Keyboard Shortcuts
 
-Aura Island features macOS-style per-application menus on the top bar using a 3-layer architecture:
-1. **Layer 1: UI Automation Mirror** — Dynamically queries the foreground window's `ControlType.MenuBar` and mirrors native menus.
-2. **Layer 2: Curated Profiles** — Process-specific JSON profiles with application-tailored actions, items, and keyboard shortcuts.
-3. **Layer 3: Generic Fallback** — Standard desktop commands (`File`, `Edit`, `View`, `Window`, `Help`) available for all apps.
-
-### Profile Schema (`src/menuProfiles/*.json`)
-
-```json
-{
-  "app": "Application Name",
-  "processNames": ["processname", "alternate_proc"],
-  "menus": [
-    {
-      "label": "File",
-      "items": [
-        { "label": "New Tab", "shortcut": "Ctrl+T", "action": "Ctrl+T" },
-        { "type": "separator" },
-        { "label": "Close Window", "shortcut": "Alt+F4", "action": "Alt+F4" }
-      ]
-    }
-  ]
-}
-```
-
-- `app`: Human-readable application title.
-- `processNames`: Array of lowercase executable names (without `.exe`) matched against active windows.
-- `menus`: Array of top-level menus (`File`, `Edit`, etc.).
-- `items`: Sub-items within the dropdown. Set `{ "type": "separator" }` for divider lines, and provide `shortcut` and `action` strings (`Ctrl+N`, `Alt+F4`, `Ctrl+Shift+P`, etc.).
-- Actions are dispatched via Win32 `SendInput` without stealing focus from the active app.
+| Shortcut | Action |
+| :--- | :--- |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>,</kbd> | Open / Focus Aura Island Settings Window |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Space</kbd> | Wake and expand Dynamic Island dashboard |
+| <kbd>Alt</kbd> + <kbd>F</kbd> | Focus active application menu dropdown |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>N</kbd> | Open quick scratchpad note editor |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>V</kbd> | Open clipboard history picker |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | Capture screenshot snip |
 
 ---
 
-## Build & Development
+## Frequently Asked Questions (FAQ)
 
-### Prerequisites
-- **Node.js** 16+ and npm
-- Platform-specific build tools:
-  - **Windows**: Visual Studio Build Tools
+#### Q: Does Aura Island steal focus when notifications arrive?
+**A:** No. Aura Island uses Win32 non-activating window flags and `showInactive()` to float on screen without stealing focus from your active apps or games.
 
-### Development Setup
+#### Q: How do I change between the Notch and Floating style?
+**A:** Open Settings (<kbd>Ctrl+Alt+,</kbd>) > **Island** > **Island Style** and select either **Notch** or **Floating**. The island morphs immediately.
 
-```bash
-# Clone the repository
-git clone https://github.com/Abrar Nabil/Quick-Pill.git
-cd Quick-Pill
-
-# Install dependencies
-npm install
-
-# Start development server
-npm start
-```
-
-The development server will launch Quick Pill with hot reload enabled. Press `Ctrl+R` to refresh the app.
-
-#### Build for Current OS
-```bash
-npm run make
-```
-
-#### Build for Specific Platforms
-
-**Windows (x64)**
-```bash
-npm run make -- --platform=win32 --arch=x64
-```
+#### Q: How do I completely wipe my saved data?
+**A:** Open Settings > **Privacy** > click **"Delete All My Data"** and confirm in the slide-up sheet. This erases all clipboard clips, scratchpad notes, shelf files, and resets settings.
 
 ---
 
-## Contributing
+## Reporting Issues & Feedback
 
-We welcome contributions!:
-- Bug reports and fixes
-- New features and improvements
-- Documentation updates
-- Theme designs
-- Ideas and suggestions
+Encountered a bug or have a feature request?
+1. Check the [Issue Tracker](https://github.com/nabil24024004/Quick-Pill-Dynamic-Island-for-Windows/issues) to see if it has already been reported.
+2. Open a new issue with your Windows version (e.g. Windows 11 23H2), display scaling (e.g. 125%), and attach `aura-island.log` from `%APPDATA%\AuraIsland\`.
 
-Please check [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+---
+
+## Credits & Acknowledgements
+
+- **Original Base Project**: Developed upon the foundational open-source [Quick-Pill](https://github.com/nabil24024004/Quick-Pill-Dynamic-Island-for-Windows) project by **Abrar Nabil** (`nabil24024004` / Piko Can Fly).
+- **C FFI Engine**: [koffi](https://github.com/Koromix/koffi) by Damien Erambert.
+- **Icons**: [Lucide React](https://lucide.dev/).
+- **Animation Physics**: [Framer Motion](https://www.framer.com/motion/).
 
 ---
 
 ## License
 
-Quick Pill is open source and available under the [MIT License](LICENSE).
-
----
-
+Licensed under the [MIT License](LICENSE). Copyright © 2026 Aura Island Contributors.

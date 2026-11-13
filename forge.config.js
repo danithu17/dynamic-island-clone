@@ -49,6 +49,23 @@ module.exports = {
               renamedArtifacts.push(setupPath);
             } catch (_) {}
           }
+
+          // Also alias AuraIsland-Setup-${version}.exe and AuraIsland-${version}-portable.zip
+          if (ext === '.exe') {
+            const aliasName = `AuraIsland-Setup-${version}.exe`;
+            const aliasPath = path.join(path.dirname(artifactPath), aliasName);
+            try {
+              fs.copyFileSync(newPath, aliasPath);
+              renamedArtifacts.push(aliasPath);
+            } catch (_) {}
+          } else if (ext === '.zip') {
+            const aliasZipName = `AuraIsland-${version}-portable.zip`;
+            const aliasZipPath = path.join(path.dirname(artifactPath), aliasZipName);
+            try {
+              fs.copyFileSync(newPath, aliasZipPath);
+              renamedArtifacts.push(aliasZipPath);
+            } catch (_) {}
+          }
         }
 
         result.artifacts = renamedArtifacts;

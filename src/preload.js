@@ -24,6 +24,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('island-wake', handler);
     return () => ipcRenderer.removeListener('island-wake', handler);
   },
+  onIslandBlur: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('island:blur', handler);
+    return () => ipcRenderer.removeListener('island:blur', handler);
+  },
   onSystemResume: (callback) => {
     const handler = () => callback();
     ipcRenderer.on('system-resume', handler);
@@ -57,6 +62,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (event, data) => callback(data);
     ipcRenderer.on('alert:volume-change', handler);
     return () => ipcRenderer.removeListener('alert:volume-change', handler);
+  },
+  getSystemBrightness: () => ipcRenderer.invoke('get-system-brightness'),
+  setSystemBrightness: (val) => ipcRenderer.invoke('set-system-brightness', val),
+  getSystemVolume: () => ipcRenderer.invoke('get-system-volume'),
+  setSystemVolume: (val) => ipcRenderer.invoke('set-system-volume', val),
+  onBrightnessChange: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('alert:brightness-change', handler);
+    return () => ipcRenderer.removeListener('alert:brightness-change', handler);
   },
   logRendererError: (errorData) => ipcRenderer.invoke('log-renderer-error', errorData),
   // Menu Bar & AppBar APIs
@@ -144,5 +158,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   clearShelf: () => ipcRenderer.invoke("shelf:clear"),
   clearNotes: () => ipcRenderer.invoke("notes:clear"),
+  deleteAllUserData: () => ipcRenderer.invoke("app:delete-all-data"),
+  runSetupAgain: () => ipcRenderer.invoke("setup:run-again"),
+  onStartFirstRun: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on("first-run:start", handler);
+    return () => ipcRenderer.removeListener("first-run:start", handler);
+  },
+  onCorruptRecovered: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on("settings:corrupt-recovered", handler);
+    return () => ipcRenderer.removeListener("settings:corrupt-recovered", handler);
+  },
   platform: 'win32'
 });

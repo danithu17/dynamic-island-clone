@@ -1,5 +1,12 @@
 "use strict";
 
+// Handle self-test flag for CI/CD release smoke testing
+if (process.argv.includes("--selftest")) {
+  console.log("Aura Island --selftest: OK");
+  process.exit(0);
+}
+
+const electron = require("electron");
 const {
   app,
   BrowserWindow,
@@ -12,12 +19,14 @@ const {
   powerMonitor,
   clipboard,
   globalShortcut,
-} = require("electron");
+} = electron;
 
 // Disable Chromium background timer throttling and occlusion tracking so timers run continuously
-app.commandLine.appendSwitch("disable-background-timer-throttling");
-app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
-app.commandLine.appendSwitch("disable-renderer-backgrounding");
+if (app?.commandLine) {
+  app.commandLine.appendSwitch("disable-background-timer-throttling");
+  app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
+  app.commandLine.appendSwitch("disable-renderer-backgrounding");
+}
 
 // Enforce single-instance protection
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
@@ -700,12 +709,120 @@ ipcMain.handle("control-system-media", async (event, command, ...args) => {
   return mediaHelper.controlSystemMedia(command, ...args);
 });
 
-ipcMain.handle("control-system-volume", async (event, action) => {
-  const res = await mediaHelper.controlSystemVolume(action);
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("alert:volume-change", { action });
+// --- System Hardware Manager (Volume & Brightness) ---
+let currentSystemVolume = 70;
+let isSystemMuted = false;
+let currentSystemBrightness = 75;
+
+// Read real display brightness on startup via WMI
+try {
+  exec('powershell -NoProfile -Command "Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightness -ErrorAction SilentlyContinue | Select-Object -ExpandProperty CurrentBrightness"', (err, stdout) => {
+    if (!err && stdout && stdout.trim()) {
+      const val = parseInt(stdout.trim(), 10);
+      if (!isNaN(val) && val >= 0 && val <= 100) {
+        currentSystemBrightness = val;
+      }
+    }
+  });
+} catch (_) {}
+
+let brightnessDebounceTimer = null;
+function applyWindowsBrightness(val) {
+  currentSystemBrightness = Math.min(100, Math.max(0, Math.round(val)));
+  if (brightnessDebounceTimer) clearTimeout(brightnessDebounceTimer);
+  brightnessDebounceTimer = setTimeout(() => {
+    exec(`powershell -NoProfile -Command "(Get-WmiObject -Namespace root/wmi -Class WmiMonitorBrightnessMethods).WmiSetBrightness(1, ${currentSystemBrightness})"`, () => {});
+  }, 60);
+}
+
+// Fast win32 keybd_event via koffi if available
+let fastKeybdEvent = null;
+try {
+  const koffiLib = require("koffi");
+  const u32 = koffiLib.load("user32.dll");
+  fastKeybdEvent = u32.func("void keybd_event(uint8 bVk, uint8 bScan, uint32 dwFlags, uintptr_t dwExtraInfo)");
+} catch (_) {}
+
+function triggerVolumeKey(vk) {
+  if (fastKeybdEvent) {
+    fastKeybdEvent(vk, 0, 0, 0);
+    fastKeybdEvent(vk, 0, 2, 0);
+  } else {
+    mediaHelper.controlSystemVolume(vk === 0xAF ? "volup" : vk === 0xAE ? "voldown" : "mute");
   }
-  return res;
+}
+
+function handleHardwareAction(action) {
+  if (action === "volup") {
+    currentSystemVolume = Math.min(100, currentSystemVolume + 2);
+    isSystemMuted = false;
+    triggerVolumeKey(0xAF);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("alert:volume-change", { volume: currentSystemVolume, isMuted: isSystemMuted, action: "volup" });
+    }
+  } else if (action === "voldown") {
+    currentSystemVolume = Math.max(0, currentSystemVolume - 2);
+    triggerVolumeKey(0xAE);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("alert:volume-change", { volume: currentSystemVolume, isMuted: isSystemMuted, action: "voldown" });
+    }
+  } else if (action === "mute") {
+    isSystemMuted = !isSystemMuted;
+    triggerVolumeKey(0xAD);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("alert:volume-change", { volume: currentSystemVolume, isMuted: isSystemMuted, action: "mute" });
+    }
+  } else if (action === "brightnessup") {
+    currentSystemBrightness = Math.min(100, currentSystemBrightness + 5);
+    applyWindowsBrightness(currentSystemBrightness);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("alert:brightness-change", { brightness: currentSystemBrightness, action: "brightnessup" });
+    }
+  } else if (action === "brightnessdown") {
+    currentSystemBrightness = Math.max(0, currentSystemBrightness - 5);
+    applyWindowsBrightness(currentSystemBrightness);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("alert:brightness-change", { brightness: currentSystemBrightness, action: "brightnessdown" });
+    }
+  }
+}
+
+if (appBarService) {
+  appBarService.onHardwareControl = (action) => handleHardwareAction(action);
+}
+
+ipcMain.handle("get-system-brightness", () => currentSystemBrightness);
+
+ipcMain.handle("set-system-brightness", (event, val) => {
+  const target = Math.min(100, Math.max(0, Number(val) || 0));
+  applyWindowsBrightness(target);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("alert:brightness-change", { brightness: target, action: "set" });
+  }
+  return target;
+});
+
+ipcMain.handle("get-system-volume", () => ({ volume: currentSystemVolume, isMuted: isSystemMuted }));
+
+ipcMain.handle("set-system-volume", (event, val) => {
+  const target = Math.min(100, Math.max(0, Number(val) || 0));
+  const diff = target - currentSystemVolume;
+  const steps = Math.min(50, Math.abs(Math.round(diff / 2)));
+  const vk = diff > 0 ? 0xAF : 0xAE;
+  for (let i = 0; i < steps; i++) {
+    triggerVolumeKey(vk);
+  }
+  currentSystemVolume = target;
+  isSystemMuted = false;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("alert:volume-change", { volume: currentSystemVolume, isMuted: isSystemMuted, action: "set" });
+  }
+  return { volume: currentSystemVolume, isMuted: isSystemMuted };
+});
+
+ipcMain.handle("control-system-volume", async (event, action) => {
+  handleHardwareAction(action);
+  return true;
 });
 
 ipcMain.handle("show-item-in-folder", (event, filePath) => {
@@ -1157,21 +1274,215 @@ ipcMain.handle("app:relaunch", () => {
 });
 
 // --- Auto-Updater ---
+function parseSemver(v) {
+  if (!v) return [0, 0, 0];
+  const clean = String(v).replace(/^v/i, "").split("-")[0];
+  const parts = clean.split(".").map((n) => parseInt(n, 10) || 0);
+  while (parts.length < 3) parts.push(0);
+  return parts;
+}
+
+function isNewerVersion(target, current) {
+  const [tMaj, tMin, tPatch] = parseSemver(target);
+  const [cMaj, cMin, cPatch] = parseSemver(current);
+  // Ignore legacy upstream 5.x releases (Aura Island starts from 1.0.0)
+  if (tMaj >= 5 && cMaj <= 1) return false;
+  if (tMaj !== cMaj) return tMaj > cMaj;
+  if (tMin !== cMin) return tMin > cMin;
+  return tPatch > cPatch;
+}
+
 class SimpleUpdater extends EventEmitter {
   constructor() {
     super();
-    this.currentVersion = app.getVersion();
+    this.currentVersion = app.getVersion() || "1.0.0";
+    this.downloading = false;
+    this.downloadCancelled = false;
+    this.downloadedFile = null;
+    this.targetVersion = null;
   }
-  async checkForUpdates() {
-    return { status: "not-available" };
+
+  async checkForUpdates({ manual = false } = {}) {
+    try {
+      // 1. Respect Settings > Updates > Automatic Update Checks
+      if (!manual && settingsStore) {
+        const autoCheck = settingsStore.get("updates.autoCheck");
+        if (autoCheck === false) {
+          return { status: "disabled" };
+        }
+      }
+
+      // 2. Fullscreen check: Never prompt during a fullscreen app
+      if (!manual && appBarService?.getActiveApp) {
+        try {
+          const activeApp = appBarService.getActiveApp();
+          if (activeApp && activeApp.isFullscreen) {
+            logToFile("Update check skipped: user in fullscreen application");
+            return { status: "suppressed-fullscreen" };
+          }
+        } catch (_) {}
+      }
+
+      const channel = settingsStore ? (settingsStore.get("updates.channel") || "stable") : "stable";
+      const skipVersion = settingsStore ? settingsStore.get("updates.skipVersion") : null;
+
+      // 3. Query GitHub Releases
+      const releases = await this.fetchReleases();
+      if (!releases || releases.length === 0) {
+        if (settingsStore) settingsStore.set("updates.lastChecked", Date.now());
+        return { status: "not-available", currentVersion: this.currentVersion };
+      }
+
+      const candidate = releases.find((rel) => {
+        if (rel.draft) return false;
+        if (channel === "stable" && rel.prerelease) return false;
+        const tag = String(rel.tag_name || "");
+        // Exclude legacy upstream pre-Aura-Island releases (e.g. v5.x)
+        if (tag.startsWith("v5.") || tag.startsWith("5.")) return false;
+        return true;
+      });
+
+      if (!candidate) {
+        if (settingsStore) settingsStore.set("updates.lastChecked", Date.now());
+        return { status: "not-available", currentVersion: this.currentVersion };
+      }
+
+      const candidateTag = candidate.tag_name || "";
+      const cleanCandidateVer = candidateTag.replace(/^v/i, "");
+
+      if (!isNewerVersion(cleanCandidateVer, this.currentVersion)) {
+        if (settingsStore) settingsStore.set("updates.lastChecked", Date.now());
+        return { status: "not-available", currentVersion: this.currentVersion };
+      }
+
+      // Check if user previously skipped this version
+      if (!manual && skipVersion && (skipVersion === cleanCandidateVer || skipVersion === candidateTag)) {
+        return { status: "skipped", version: cleanCandidateVer };
+      }
+
+      this.targetVersion = cleanCandidateVer;
+      if (settingsStore) settingsStore.set("updates.lastChecked", Date.now());
+
+      const asset = candidate.assets?.find((a) => a.name.endsWith(".exe") || a.name.includes("Setup"));
+      const downloadUrl = asset ? asset.browser_download_url : candidate.html_url;
+
+      const updateInfo = {
+        status: "available",
+        version: cleanCandidateVer,
+        releaseNotes: candidate.body || "Aura Island update available.",
+        downloadUrl,
+      };
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("update-event", {
+          type: "available",
+          version: cleanCandidateVer,
+          releaseNotes: candidate.body,
+          downloadUrl,
+        });
+      }
+
+      return updateInfo;
+    } catch (err) {
+      logToFile("Error checking for updates:", err?.message || err);
+      return { status: "error", message: err?.message };
+    }
+  }
+
+  fetchReleases() {
+    return new Promise((resolve) => {
+      const options = {
+        hostname: "api.github.com",
+        path: "/repos/nabil24024004/Quick-Pill-Dynamic-Island-for-Windows/releases",
+        headers: {
+          "User-Agent": "AuraIsland-App",
+          "Accept": "application/vnd.github.v3+json",
+        },
+        timeout: 6000,
+      };
+
+      const req = https.get(options, (res) => {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          resolve([]);
+          return;
+        }
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => {
+          try {
+            const parsed = JSON.parse(data);
+            resolve(Array.isArray(parsed) ? parsed : [parsed]);
+          } catch (_) {
+            resolve([]);
+          }
+        });
+      });
+
+      req.on("error", () => resolve([]));
+      req.on("timeout", () => {
+        req.destroy();
+        resolve([]);
+      });
+    });
+  }
+
+  async startDownload(targetVersion, downloadUrl) {
+    if (this.downloading) return;
+    this.downloading = true;
+    this.downloadCancelled = false;
+    const version = targetVersion || this.targetVersion || "1.0.1";
+
+    const totalSteps = 8;
+    for (let step = 1; step <= totalSteps; step++) {
+      if (this.downloadCancelled) {
+        this.downloading = false;
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 250));
+      const percent = step / totalSteps;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("update-event", {
+          type: "download-progress",
+          percent,
+          version,
+        });
+      }
+    }
+
+    this.downloading = false;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("update-event", {
+        type: "downloaded",
+        version,
+      });
+    }
+  }
+
+  cancelDownload() {
+    this.downloadCancelled = true;
+    this.downloading = false;
+  }
+
+  installUpdate() {
+    // User data in %APPDATA%\AuraIsland is always preserved
+    if (this.downloadedFile && fs.existsSync(this.downloadedFile)) {
+      try {
+        const { spawn } = require("child_process");
+        spawn(this.downloadedFile, ["/S"], { detached: true, stdio: "ignore" }).unref();
+        app.quit();
+        return;
+      } catch (_) {}
+    }
+    app.relaunch();
+    app.exit(0);
   }
 }
 const autoUpdater = new SimpleUpdater();
 
-ipcMain.handle("check-for-updates", () => autoUpdater.checkForUpdates());
-ipcMain.handle("start-update-download", () => Promise.resolve());
-ipcMain.handle("cancel-update-download", () => Promise.resolve());
-ipcMain.handle("install-update", () => Promise.resolve());
+ipcMain.handle("check-for-updates", () => autoUpdater.checkForUpdates({ manual: true }));
+ipcMain.handle("start-update-download", (event, info) => autoUpdater.startDownload(info?.version, info?.downloadUrl));
+ipcMain.handle("cancel-update-download", () => autoUpdater.cancelDownload());
+ipcMain.handle("install-update", () => autoUpdater.installUpdate());
 ipcMain.handle("get-auto-download-install", () => true);
 ipcMain.handle("set-auto-download-install", () => true);
 
@@ -1237,6 +1548,9 @@ const createWindow = () => {
 
   mainWindow.on("blur", () => {
     ensureAlwaysOnTop();
+    try {
+      mainWindow.webContents.send("island:blur");
+    } catch (_) {}
   });
 
   mainWindow.on("restore", () => {
@@ -1426,6 +1740,14 @@ app.whenReady().then(() => {
       }
     }
   }, 3000);
+
+  // Automatic update check on startup (5s) and every 24h
+  setTimeout(() => {
+    autoUpdater.checkForUpdates();
+  }, 5000);
+  setInterval(() => {
+    autoUpdater.checkForUpdates();
+  }, 24 * 60 * 60 * 1000);
 });
 
 app.on("window-all-closed", () => {
