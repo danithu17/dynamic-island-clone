@@ -14,7 +14,7 @@
     "make": "electron-forge make",
     "build-win": "electron-builder --win",
     "publish": "electron-forge publish",
-    "test": "node --test tests/*.test.js",
+    "test": "node --test",
     "update:manifest": "node scripts/generate-manifest.js",
     "lint": "echo \"No linting configured\""
   },
