@@ -18,6 +18,8 @@ import {
   Activity,
   Calculator,
   ChevronRight,
+  RotateCcw,
+  PowerOff,
 } from "lucide-react";
 
 export default function ControlCenter({ mediaTrack, onClose }) {
@@ -548,10 +550,38 @@ export default function ControlCenter({ mediaTrack, onClose }) {
         >
           <Settings size={11} color="#bf5af2" /> Settings
         </button>
+      </div>
+
+      {/* System Power Controls Row */}
+      <div style={{ display: "flex", gap: 6, justifyContent: "space-between" }}>
+        <button
+          onClick={() => {
+            window.electronAPI?.powerAction?.("sleep");
+            onClose?.();
+          }}
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            padding: "5px 6px",
+            borderRadius: 8,
+            background: "rgba(255, 255, 255, 0.05)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            color: "#ffffff",
+            fontSize: 10.5,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+          title="Sleep Computer"
+        >
+          <Moon size={11} color="#0a84ff" /> Sleep
+        </button>
 
         <button
           onClick={() => {
-            window.electronAPI?.lockWorkstation?.();
+            window.electronAPI?.powerAction?.("lock");
             onClose?.();
           }}
           style={{
@@ -571,8 +601,59 @@ export default function ControlCenter({ mediaTrack, onClose }) {
           }}
           title="Lock Workstation"
         >
-          <Lock size={11} color="#ff3b30" /> Lock
+          <Lock size={11} color="#ffd60a" /> Lock
         </button>
+
+        <button
+          onClick={() => {
+            window.electronAPI?.powerAction?.("restart");
+            onClose?.();
+          }}
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            padding: "5px 6px",
+            borderRadius: 8,
+            background: "rgba(255, 255, 255, 0.05)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            color: "#ffffff",
+            fontSize: 10.5,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+          title="Restart Computer"
+        >
+          <RotateCcw size={11} color="#30d158" /> Restart
+        </button>
+
+        <button
+          onClick={() => {
+            window.electronAPI?.powerAction?.("shutdown");
+            onClose?.();
+          }}
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            padding: "5px 6px",
+            borderRadius: 8,
+            background: "rgba(255, 69, 58, 0.12)",
+            border: "1px solid rgba(255, 69, 58, 0.3)",
+            color: "#ff453a",
+            fontSize: 10.5,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+          title="Shut Down Computer"
+        >
+          <PowerOff size={11} color="#ff453a" /> Shut Down
+        </button>
+      </div>
       </div>
     </div>
   );

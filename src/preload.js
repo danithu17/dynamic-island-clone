@@ -67,6 +67,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setSystemBrightness: (val) => ipcRenderer.invoke('set-system-brightness', val),
   getSystemVolume: () => ipcRenderer.invoke('get-system-volume'),
   setSystemVolume: (val) => ipcRenderer.invoke('set-system-volume', val),
+  getSystemBattery: () => ipcRenderer.invoke('system:get-battery'),
+  powerAction: (action) => ipcRenderer.invoke('system:power-action', action),
+  openPowerSettings: () => ipcRenderer.invoke('system:open-power-settings'),
+  openSoundSettings: () => ipcRenderer.invoke('system:open-sound-settings'),
+  getPowerScheme: () => ipcRenderer.invoke('system:get-power-scheme'),
+  setPowerScheme: (schemeId) => ipcRenderer.invoke('system:set-power-scheme', schemeId),
   onBrightnessChange: (callback) => {
     const handler = (event, data) => callback(data);
     ipcRenderer.on('alert:brightness-change', handler);

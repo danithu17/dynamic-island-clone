@@ -639,7 +639,7 @@ ipcMain.handle("set-ignore-mouse-events", (event, ignore, forward) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     try {
       if (ignore) {
-        const useForward = process.platform === "darwin" ? Boolean(forward) : false;
+        const useForward = forward !== undefined ? Boolean(forward) : true;
         mainWindow.setIgnoreMouseEvents(true, { forward: useForward });
       } else {
         mainWindow.setIgnoreMouseEvents(false);
@@ -704,10 +704,49 @@ ipcMain.handle("control-system-media", async (event, command, ...args) => {
   return mediaHelper.controlSystemMedia(command, ...args);
 });
 
-// --- System Hardware Manager (Volume & Brightness) ---
+// --- System Hardware Manager (Volume, Battery, Brightness & Power) ---
 let currentSystemVolume = 70;
 let isSystemMuted = false;
 let currentSystemBrightness = 75;
+
+function getAudioHelperPath() {
+  const basePath = app ? app.getAppPath() : process.cwd();
+  const candidatePaths = [
+    path.join(__dirname, "../helpers/bin/audioHelper.exe"),
+    path.join(__dirname, "helpers/bin/audioHelper.exe"),
+    path.join(process.resourcesPath || "", "helpers/bin/audioHelper.exe"),
+    path.join(basePath, "src/helpers/bin/audioHelper.exe"),
+  ];
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+function runAudioHelper(args) {
+  return new Promise((resolve) => {
+    const exe = getAudioHelperPath();
+    if (!exe) return resolve(null);
+    execFile(exe, args, { windowsHide: true }, (err, stdout) => {
+      if (err || !stdout) return resolve(null);
+      try {
+        resolve(JSON.parse(stdout.trim()));
+      } catch (_) {
+        resolve(null);
+      }
+    });
+  });
+}
+
+// Read real Windows master volume on startup via audioHelper
+try {
+  runAudioHelper(["get"]).then((res) => {
+    if (res && typeof res.volume === "number") {
+      currentSystemVolume = res.volume;
+      isSystemMuted = Boolean(res.isMuted);
+    }
+  });
+} catch (_) {}
 
 // Read real display brightness on startup via WMI
 try {
@@ -747,23 +786,41 @@ function triggerVolumeKey(vk) {
   }
 }
 
-function handleHardwareAction(action) {
+async function handleHardwareAction(action) {
   if (action === "volup") {
-    currentSystemVolume = Math.min(100, currentSystemVolume + 2);
-    isSystemMuted = false;
-    triggerVolumeKey(0xAF);
+    const res = await runAudioHelper(["step", "2"]);
+    if (res && typeof res.volume === "number") {
+      currentSystemVolume = res.volume;
+      isSystemMuted = Boolean(res.isMuted);
+    } else {
+      currentSystemVolume = Math.min(100, currentSystemVolume + 2);
+      isSystemMuted = false;
+      triggerVolumeKey(0xAF);
+    }
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("alert:volume-change", { volume: currentSystemVolume, isMuted: isSystemMuted, action: "volup" });
     }
   } else if (action === "voldown") {
-    currentSystemVolume = Math.max(0, currentSystemVolume - 2);
-    triggerVolumeKey(0xAE);
+    const res = await runAudioHelper(["step", "-2"]);
+    if (res && typeof res.volume === "number") {
+      currentSystemVolume = res.volume;
+      isSystemMuted = Boolean(res.isMuted);
+    } else {
+      currentSystemVolume = Math.max(0, currentSystemVolume - 2);
+      triggerVolumeKey(0xAE);
+    }
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("alert:volume-change", { volume: currentSystemVolume, isMuted: isSystemMuted, action: "voldown" });
     }
   } else if (action === "mute") {
-    isSystemMuted = !isSystemMuted;
-    triggerVolumeKey(0xAD);
+    const res = await runAudioHelper(["mute"]);
+    if (res && typeof res.volume === "number") {
+      currentSystemVolume = res.volume;
+      isSystemMuted = Boolean(res.isMuted);
+    } else {
+      isSystemMuted = !isSystemMuted;
+      triggerVolumeKey(0xAD);
+    }
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("alert:volume-change", { volume: currentSystemVolume, isMuted: isSystemMuted, action: "mute" });
     }
@@ -797,18 +854,25 @@ ipcMain.handle("set-system-brightness", (event, val) => {
   return target;
 });
 
-ipcMain.handle("get-system-volume", () => ({ volume: currentSystemVolume, isMuted: isSystemMuted }));
-
-ipcMain.handle("set-system-volume", (event, val) => {
-  const target = Math.min(100, Math.max(0, Number(val) || 0));
-  const diff = target - currentSystemVolume;
-  const steps = Math.min(50, Math.abs(Math.round(diff / 2)));
-  const vk = diff > 0 ? 0xAF : 0xAE;
-  for (let i = 0; i < steps; i++) {
-    triggerVolumeKey(vk);
+ipcMain.handle("get-system-volume", async () => {
+  const res = await runAudioHelper(["get"]);
+  if (res && typeof res.volume === "number") {
+    currentSystemVolume = res.volume;
+    isSystemMuted = Boolean(res.isMuted);
   }
-  currentSystemVolume = target;
-  isSystemMuted = false;
+  return { volume: currentSystemVolume, isMuted: isSystemMuted };
+});
+
+ipcMain.handle("set-system-volume", async (event, val) => {
+  const target = Math.min(100, Math.max(0, Number(val) || 0));
+  const res = await runAudioHelper(["set", String(target)]);
+  if (res && typeof res.volume === "number") {
+    currentSystemVolume = res.volume;
+    isSystemMuted = Boolean(res.isMuted);
+  } else {
+    currentSystemVolume = target;
+    isSystemMuted = false;
+  }
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("alert:volume-change", { volume: currentSystemVolume, isMuted: isSystemMuted, action: "set" });
   }
@@ -816,8 +880,72 @@ ipcMain.handle("set-system-volume", (event, val) => {
 });
 
 ipcMain.handle("control-system-volume", async (event, action) => {
-  handleHardwareAction(action);
-  return true;
+  await handleHardwareAction(action);
+  return { volume: currentSystemVolume, isMuted: isSystemMuted };
+});
+
+// Real Battery and System Power APIs
+ipcMain.handle("system:get-battery", async () => {
+  const res = await runAudioHelper(["battery"]);
+  if (res && typeof res.percent === "number") {
+    return res;
+  }
+  return { percent: 100, charging: false, isAC: true, hasBattery: false };
+});
+
+ipcMain.handle("system:power-action", async (event, action) => {
+  if (["lock", "sleep", "restart", "shutdown", "signout"].includes(action)) {
+    return runAudioHelper(["action", action]);
+  }
+  return { success: false, error: "Invalid action" };
+});
+
+ipcMain.handle("system:open-power-settings", () => {
+  if (process.platform === "win32") {
+    exec("explorer.exe ms-settings:powersleep", (err) => {
+      if (err) logToFile("Failed to open power settings:", err);
+    });
+  }
+});
+
+ipcMain.handle("system:open-sound-settings", () => {
+  if (process.platform === "win32") {
+    exec("explorer.exe ms-settings:sound", (err) => {
+      if (err) logToFile("Failed to open sound settings:", err);
+    });
+  }
+});
+
+ipcMain.handle("system:get-power-scheme", async () => {
+  return new Promise((resolve) => {
+    exec("powercfg /getactivescheme", (err, stdout) => {
+      if (!err && stdout) {
+        const lower = stdout.toLowerCase();
+        if (lower.includes("high performance") || lower.includes("8c5e7fda")) {
+          return resolve({ id: "performance", label: "High Performance", guid: "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" });
+        } else if (lower.includes("power saver") || lower.includes("a1841308")) {
+          return resolve({ id: "efficiency", label: "Power Efficiency", guid: "a1841308-3541-4fab-bc81-f71556f20b4a" });
+        } else {
+          return resolve({ id: "balanced", label: "Balanced", guid: "381b4222-f694-41f0-9685-ff5bb260df2e" });
+        }
+      }
+      resolve({ id: "balanced", label: "Balanced", guid: "381b4222-f694-41f0-9685-ff5bb260df2e" });
+    });
+  });
+});
+
+ipcMain.handle("system:set-power-scheme", async (event, schemeId) => {
+  const guids = {
+    balanced: "381b4222-f694-41f0-9685-ff5bb260df2e",
+    performance: "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c",
+    efficiency: "a1841308-3541-4fab-bc81-f71556f20b4a",
+  };
+  const guid = guids[schemeId] || schemeId;
+  return new Promise((resolve) => {
+    exec(`powercfg /setactive ${guid}`, (err) => {
+      resolve(!err);
+    });
+  });
 });
 
 ipcMain.handle("show-item-in-folder", (event, filePath) => {

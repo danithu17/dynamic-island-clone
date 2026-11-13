@@ -4,6 +4,9 @@ import {
   Wifi,
   Bluetooth,
   Volume2,
+  VolumeX,
+  Volume1,
+  Volume,
   FolderPlus,
   FileEdit,
   Clipboard,
@@ -50,6 +53,7 @@ export default function MenuBar({
 }) {
   const [activeApp, setActiveApp] = useState({ name: "Desktop", icon: "" });
   const [batteryInfo, setBatteryInfo] = useState({ percent: 100, charging: false });
+  const [systemVolume, setSystemVolume] = useState({ volume: 100, isMuted: false });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenBehavior, setFullscreenBehavior] = useState("hide");
   const [autoHideVisible, setAutoHideVisible] = useState(false);
@@ -168,32 +172,69 @@ export default function MenuBar({
     return unsub;
   }, []);
 
-  // Battery monitoring (zero background work if disabled)
+  // Master Volume monitoring
+  useEffect(() => {
+    if (window.electronAPI?.getSystemVolume) {
+      window.electronAPI.getSystemVolume().then((res) => {
+        if (res && typeof res.volume === "number") {
+          setSystemVolume({ volume: res.volume, isMuted: Boolean(res.isMuted) });
+        }
+      }).catch(() => {});
+    }
+
+    const unsubVol = window.electronAPI?.onVolumeChange?.((data) => {
+      if (data && typeof data.volume === "number") {
+        setSystemVolume({ volume: data.volume, isMuted: Boolean(data.isMuted) });
+      }
+    });
+
+    return () => unsubVol?.();
+  }, []);
+
+  // Battery monitoring (hybrid: native system query + Web Battery API)
   useEffect(() => {
     if (menuConfig.items?.battery === false) return;
-    if (!navigator.getBattery) return;
-
-    let batteryInstance = null;
     let mounted = true;
 
-    const updateBattery = () => {
-      if (!batteryInstance || !mounted) return;
-      setBatteryInfo({
-        percent: Math.round(batteryInstance.level * 100),
-        charging: batteryInstance.charging,
-      });
+    const queryNativeBattery = () => {
+      if (window.electronAPI?.getSystemBattery) {
+        window.electronAPI.getSystemBattery().then((info) => {
+          if (!mounted || !info) return;
+          if (typeof info.percent === "number") {
+            setBatteryInfo({
+              percent: info.percent,
+              charging: Boolean(info.charging),
+            });
+          }
+        }).catch(() => {});
+      }
     };
 
-    navigator.getBattery().then((battery) => {
-      if (!mounted) return;
-      batteryInstance = battery;
-      updateBattery();
-      battery.addEventListener("levelchange", updateBattery);
-      battery.addEventListener("chargingchange", updateBattery);
-    }).catch(() => {});
+    queryNativeBattery();
+    const pollInterval = setInterval(queryNativeBattery, 10000);
+
+    let batteryInstance = null;
+    if (navigator.getBattery) {
+      const updateBattery = () => {
+        if (!batteryInstance || !mounted) return;
+        setBatteryInfo({
+          percent: Math.round(batteryInstance.level * 100),
+          charging: batteryInstance.charging,
+        });
+      };
+
+      navigator.getBattery().then((battery) => {
+        if (!mounted) return;
+        batteryInstance = battery;
+        updateBattery();
+        battery.addEventListener("levelchange", updateBattery);
+        battery.addEventListener("chargingchange", updateBattery);
+      }).catch(() => {});
+    }
 
     return () => {
       mounted = false;
+      clearInterval(pollInterval);
       if (batteryInstance) {
         batteryInstance.removeEventListener("levelchange", updateBattery);
         batteryInstance.removeEventListener("chargingchange", updateBattery);
@@ -383,7 +424,7 @@ export default function MenuBar({
           width: "100vw",
           height: `${stripHeight}px`,
           boxSizing: "border-box",
-          zIndex: 999990,
+          zIndex: 999995,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -522,11 +563,21 @@ export default function MenuBar({
           {visibleRightToggleables.some((i) => i.id === "volume") && (
             <MenuItem
               id="volume"
-              icon={<Volume2 size={14} />}
+              icon={
+                systemVolume.isMuted || systemVolume.volume === 0 ? (
+                  <VolumeX size={14} color="#ff453a" />
+                ) : systemVolume.volume < 35 ? (
+                  <Volume size={14} />
+                ) : systemVolume.volume < 70 ? (
+                  <Volume1 size={14} />
+                ) : (
+                  <Volume2 size={14} />
+                )
+              }
               isOpen={activeMenu === "volume"}
               onClick={(e) => openMenu("volume", e, "right")}
               onMouseEnter={(e) => handleItemHoverSwitch("volume", e, "right")}
-              title="Sound Volume"
+              title={`Sound Volume: ${systemVolume.isMuted ? "Muted" : `${systemVolume.volume}%`}`}
             />
           )}
 

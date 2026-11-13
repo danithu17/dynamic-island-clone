@@ -563,9 +563,7 @@ export default function Island() {
     isHoveredRef.current = true;
     setIsHovered(true);
     alertQueue.pauseTimer();
-    if (activeAlert) {
-      window.electronAPI?.setIgnoreMouseEvents?.(false);
-    }
+    window.electronAPI?.setIgnoreMouseEvents?.(false);
 
     const delay = islandSettings.hoverDelay || 180;
     if (hoverEnterTimer.current) clearTimeout(hoverEnterTimer.current);
@@ -753,12 +751,12 @@ export default function Island() {
           }}
           style={{
             position: "fixed",
-            top: 0,
+            top: `${stripHeight}px`,
             left: 0,
             width: "100vw",
-            height: "100vh",
+            height: `calc(100vh - ${stripHeight}px)`,
             pointerEvents: "auto",
-            zIndex: 999990,
+            zIndex: 999980,
             background: "transparent",
           }}
         />

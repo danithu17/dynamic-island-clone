@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles, Settings, RefreshCw, Power, Check, ShieldCheck, ExternalLink, Minimize2 } from "lucide-react";
+import { Sparkles, Settings, RefreshCw, Power, Check, ShieldCheck, ExternalLink, Minimize2, Lock, Moon, RotateCcw, PowerOff, LogOut } from "lucide-react";
 
 export default function AuraMenuDropdown({
   appVersion = "5.5.1",
@@ -145,6 +145,74 @@ export default function AuraMenuDropdown({
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
           <Minimize2 size={14} opacity={0.8} />
           <span>Release Reserved Space</span>
+        </div>
+      </div>
+
+      <div style={separatorStyle} />
+
+      {/* System Power Options */}
+      <div style={{ padding: "3px 10px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", opacity: 0.45, letterSpacing: "0.5px" }}>
+        System Power Options
+      </div>
+
+      <div
+        style={itemStyle}
+        onClick={() => handleItemClick(() => window.electronAPI?.powerAction?.("lock"))}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <Lock size={13} opacity={0.8} />
+          <span>Lock Screen</span>
+        </div>
+        <span style={{ fontSize: 10.5, opacity: 0.5 }}>Win+L</span>
+      </div>
+
+      <div
+        style={itemStyle}
+        onClick={() => handleItemClick(() => window.electronAPI?.powerAction?.("sleep"))}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <Moon size={13} opacity={0.8} />
+          <span>Sleep</span>
+        </div>
+      </div>
+
+      <div
+        style={itemStyle}
+        onClick={() => handleItemClick(() => window.electronAPI?.powerAction?.("restart"))}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <RotateCcw size={13} opacity={0.8} />
+          <span>Restart Computer...</span>
+        </div>
+      </div>
+
+      <div
+        style={{ ...itemStyle, color: "#ff453a" }}
+        onClick={() => handleItemClick(() => window.electronAPI?.powerAction?.("shutdown"))}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 69, 58, 0.25)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <PowerOff size={13} color="#ff453a" />
+          <span>Shut Down Computer...</span>
+        </div>
+      </div>
+
+      <div
+        style={itemStyle}
+        onClick={() => handleItemClick(() => window.electronAPI?.powerAction?.("signout"))}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#0070f3")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <LogOut size={13} opacity={0.8} />
+          <span>Log Out / Sign Out</span>
         </div>
       </div>
 
